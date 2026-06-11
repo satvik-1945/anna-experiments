@@ -1,0 +1,16 @@
+[project]
+name = "calc-executa"
+version = "1.0.0"
+description = "Anna Calculator Executa plugin"
+requires-python = ">=3.10"
+
+[project.scripts]
+calc-plugin = "calc_plugin:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+only-include = ["calc_plugin.py"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

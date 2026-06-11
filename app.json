@@ -1,0 +1,7 @@
+{
+  "slug": "calc-buddy",
+  "name": "Calc Buddy",
+  "category": "productivity",
+  "tagline": "Deterministic arithmetic — no hallucinated math",
+  "description": "A learning Anna App that bundles a safe calculator Tool and a Skill that teaches the assistant when and how to use it. Every numeric answer comes from real computation, not LLM guessing."
+}
