@@ -1,6 +1,8 @@
 # Team Briefing — Anna Calculator Demo
 
-Use this for your NR Discord presentation.
+**For the full 20-minute voice script, use [PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md).**
+
+Run before presenting: `./scripts/presentation-preflight.sh`
 
 ## 30-second pitch
 

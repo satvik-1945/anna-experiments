@@ -34,7 +34,9 @@ cp anna.local.json.example anna.local.json   # paste your minted tool_id
 |-----|----------|
 | [docs/ANNA_TOOLS.md](docs/ANNA_TOOLS.md) | How Anna tools work + the correct install workflow |
 | [docs/BUILD_NEW_TOOL.md](docs/BUILD_NEW_TOOL.md) | Copy the calculator pattern for your next tool |
-| [docs/TEAM_BRIEFING.md](docs/TEAM_BRIEFING.md) | Demo script for presenting to teammates |
+| [docs/PRESENTATION_SCRIPT.md](docs/PRESENTATION_SCRIPT.md) | **20-min voice talk — read this aloud** |
+| [docs/PRESENTER_CHECKLIST.md](docs/PRESENTER_CHECKLIST.md) | 5-min preflight checklist |
+| [docs/TEAM_BRIEFING.md](docs/TEAM_BRIEFING.md) | Short demo outline |
 
 ## Project structure
 
