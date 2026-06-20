@@ -1,51 +1,55 @@
 #!/usr/bin/env bash
-# Smoke tests for the calc Executa plugin.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PLUGIN="$ROOT/executas/calc/calc_plugin.py"
-PYTHON="${PYTHON:-python3}"
+PLUGIN="$ROOT/executas/job-scraper/job_scraper_plugin.py"
+
+if [[ -x "$ROOT/.venv314/bin/python" ]]; then
+  PYTHON="$ROOT/.venv314/bin/python"
+elif [[ -x "$ROOT/.venv/bin/python" ]]; then
+  PYTHON="$ROOT/.venv/bin/python"
+else
+  PYTHON="${PYTHON:-python3}"
+fi
+
+send() {
+  printf '%s\n' "$1" | "$PYTHON" "$PLUGIN"
+}
 
 echo "== describe =="
-OUT=$(echo '{"jsonrpc":"2.0","method":"describe","id":1}' | "$PYTHON" "$PLUGIN")
-echo "$OUT" | grep -q '"name": "calc"' || { echo "FAIL: describe"; exit 1; }
-echo "OK"
-
-echo "== evaluate 2+2 =="
-OUT=$(echo '{"jsonrpc":"2.0","method":"invoke","id":2,"params":{"tool":"calc","arguments":{"action":"evaluate","expression":"2+2"}}}' | "$PYTHON" "$PLUGIN")
-echo "$OUT" | grep -q '"result": 4' || { echo "FAIL: evaluate"; echo "$OUT"; exit 1; }
-echo "OK"
-
-echo "== evaluate with precedence =="
-OUT=$(echo '{"jsonrpc":"2.0","method":"invoke","id":3,"params":{"tool":"calc","arguments":{"action":"evaluate","expression":"2+3*4"}}}' | "$PYTHON" "$PLUGIN")
-echo "$OUT" | grep -q '"result": 14' || { echo "FAIL: precedence"; echo "$OUT"; exit 1; }
-echo "OK"
+send '{"jsonrpc":"2.0","method":"describe","id":1}' | "$PYTHON" -c "
+import json, sys
+data = json.load(sys.stdin)
+assert data['result']['name'] == 'job-scraper'
+assert any(t['name'] == 'job_scraper' for t in data['result']['tools'])
+print('ok')
+"
 
 echo "== health =="
-OUT=$(echo '{"jsonrpc":"2.0","method":"health","id":4}' | "$PYTHON" "$PLUGIN")
-echo "$OUT" | grep -q '"status": "ready"' || { echo "FAIL: health"; exit 1; }
-echo "OK"
+send '{"jsonrpc":"2.0","method":"health","id":2}' | "$PYTHON" -c "
+import json, sys
+data = json.load(sys.stdin)
+assert data['result']['status'] == 'ready'
+print('ok')
+"
 
-echo "== long-running loop (must not exit while stdin is open) =="
-FIFO=$(mktemp -u "${TMPDIR:-/tmp}/calc-smoke.XXXXXX")
-mkfifo "$FIFO"
-"$PYTHON" "$PLUGIN" < "$FIFO" &
-PID=$!
-exec 3>"$FIFO"
-echo '{"jsonrpc":"2.0","id":1,"method":"describe"}' >&3
-sleep 2
-if kill -0 "$PID" 2>/dev/null; then
-  echo "OK (process still alive with open stdin)"
-  exec 3>&-
-  kill "$PID" 2>/dev/null || true
-  wait "$PID" 2>/dev/null || true
-else
-  echo "BUG: process exited while stdin was still open"
-  exec 3>&- 2>/dev/null || true
-  rm -f "$FIFO"
-  exit 1
-fi
-rm -f "$FIFO"
+echo "== summary (empty) =="
+send '{"jsonrpc":"2.0","method":"invoke","id":3,"params":{"tool":"job_scraper","arguments":{"action":"summary"}}}' | "$PYTHON" -c "
+import json, sys
+data = json.load(sys.stdin)
+assert data['result']['success'] is True
+assert data['result']['data']['count'] == 0
+print('ok')
+"
 
-echo ""
+echo "== scrape (mocked) =="
+RESUMATCH_SMOKE_MOCK=1 send '{"jsonrpc":"2.0","method":"invoke","id":4,"params":{"tool":"job_scraper","arguments":{"action":"scrape","mode":"free","results_wanted":2,"hours_old":24}}}' | "$PYTHON" -c "
+import json, sys
+data = json.load(sys.stdin)
+assert 'result' in data, data
+assert data['result']['success'] is True
+assert data['result']['data']['count'] == 1
+print('ok')
+"
+
 echo "All smoke tests passed."

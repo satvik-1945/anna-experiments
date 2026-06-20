@@ -1,0 +1,9 @@
+{
+  "slug": "resume-composer",
+  "name": "Resume Composer",
+  "version": "0.1.0",
+  "executa_type": "tool",
+  "tool_id": "tool-tejasstvk8-resume-composer-yf9kf9ja",
+  "type": "python",
+  "enabled": true
+}

@@ -1,4 +1,5 @@
 .venv/
+.venv314/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -9,4 +10,9 @@ build/
 .uv/
 anna.local.json
 *.egg-info/
-anna.local.json
+creator-docs/
+.anna/resumatch/profile.json
+.anna/resumatch/jobs_latest.json
+.anna/resumatch/match_results.json
+.anna/resumatch/application_packs.json
+.anna/resumatch/resumes/

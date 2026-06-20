@@ -1,7 +1,7 @@
 [project]
-name = "anna-calculator"
-version = "1.0.0"
-description = "Anna Calculator — reference Executa Tool + Skill"
+name = "resumatch"
+version = "0.1.0"
+description = "ResuMatch — Anna App for fresh job suggestions and resume tailoring"
 requires-python = ">=3.12"
 readme = "README.md"
 

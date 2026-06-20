@@ -1,7 +1,8 @@
 {
-  "slug": "calc-buddy",
-  "name": "Calc Buddy",
+  "name": "ResuMatch",
+  "slug": "resumatch",
+  "tagline": "Scrape jobs, match your resume, apply manually",
+  "description": "Job-search dashboard: save your Overleaf resume, refresh to scrape and score jobs, open apply links, track what you applied to.",
   "category": "productivity",
-  "tagline": "Deterministic arithmetic — no hallucinated math",
-  "description": "A learning Anna App that bundles a safe calculator Tool and a Skill that teaches the assistant when and how to use it. Every numeric answer comes from real computation, not LLM guessing."
+  "pricing_model": "free"
 }

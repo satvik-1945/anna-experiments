@@ -1,0 +1,10 @@
+{
+  "slug": "job-scraper",
+  "name": "Job Scraper",
+  "version": "0.1.0",
+  "executa_type": "tool",
+  "tool_id": "tool-tejasstvk8-job-scraper-7yj4tbf2",
+  "type": "python",
+  "enabled": true,
+  "description": "Scrape recent job listings (Indeed, Google Jobs, optional LinkedIn boost) for ResuMatch manual apply workflow."
+}

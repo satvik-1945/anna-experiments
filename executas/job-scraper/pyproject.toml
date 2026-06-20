@@ -1,0 +1,19 @@
+[project]
+name = "resumatch-job-scraper"
+version = "0.1.0"
+description = "ResuMatch job scraper Anna Executa plugin"
+requires-python = ">=3.12"
+dependencies = [
+    "python-jobspy>=1.1.82",
+    "requests>=2.31.0",
+]
+
+[project.scripts]
+job-scraper = "job_scraper_plugin:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]

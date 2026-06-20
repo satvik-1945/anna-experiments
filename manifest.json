@@ -1,9 +1,42 @@
 {
-  "schema": 1,
+  "schema": 2,
+  "permissions": ["tools.invoke", "storage.read", "storage.write"],
   "required_executas": [
-    { "tool_id": "tool-dev-calc" }
+    { "tool_id": "tool-tejasstvk8-resumatch-profile-ae86dv2d" },
+    { "tool_id": "tool-tejasstvk8-job-scraper-7yj4tbf2" },
+    { "tool_id": "tool-tejasstvk8-job-matcher-uw9mk2et" },
+    { "tool_id": "tool-tejasstvk8-resume-composer-yf9kf9ja" },
+    { "tool_id": "tool-tejasstvk8-application-pack-ys4xy6db" }
   ],
-  "system_prompt_addendum": "You are Calc Buddy, a precise arithmetic assistant. Always use the calc tool for numeric answers — never approximate. When the user asks a math question, normalize percentages and word problems into arithmetic expressions, call calc with action=evaluate, and present the result clearly.",
-  "user_message_prefix_template": "[Calc] {user_message}",
-  "tags": ["calculator", "productivity", "learning"]
+  "tags": ["resumatch", "jobs", "resume"],
+  "system_prompt_addendum": "When the user opens ResuMatch, summon the dashboard via open_app_view('resumatch', 'main'). They can save profile and refresh jobs from the UI; do not auto-apply.",
+  "ui": {
+    "bundle": {
+      "format": "static-spa",
+      "entry": "index.html",
+      "external_origins": []
+    },
+    "views": [
+      {
+        "name": "main",
+        "title": "ResuMatch",
+        "default": true,
+        "default_size": { "w": 820, "h": 920 },
+        "min_size": { "w": 480, "h": 560 },
+        "single_instance": true
+      }
+    ],
+    "host_api": {
+      "tools": ["required:*"],
+      "storage": ["get", "set"],
+      "window": ["set_title", "ready"]
+    },
+    "csp_overrides": {},
+    "state_merge": "last_writer_wins"
+  },
+  "dev": {
+    "fixtures": [],
+    "seed_storage": {},
+    "user_id": 1
+  }
 }

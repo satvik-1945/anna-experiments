@@ -1,0 +1,9 @@
+{
+  "$schema": "anna-executa-identity/v1",
+  "host": "https://anna.partners",
+  "executa_id": 1026,
+  "tool_id": "tool-tejasstvk8-resumatch-profile-ae86dv2d",
+  "slug": "resumatch-profile",
+  "executa_type": "tool",
+  "first_published_at": "2026-06-19T11:58:29.285Z"
+}

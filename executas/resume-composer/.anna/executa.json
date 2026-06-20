@@ -1,0 +1,9 @@
+{
+  "$schema": "anna-executa-identity/v1",
+  "host": "https://anna.partners",
+  "executa_id": 1029,
+  "tool_id": "tool-tejasstvk8-resume-composer-yf9kf9ja",
+  "slug": "resume-composer",
+  "executa_type": "tool",
+  "first_published_at": "2026-06-19T12:58:42.310Z"
+}

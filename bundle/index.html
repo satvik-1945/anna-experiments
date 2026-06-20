@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ResuMatch</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./app.js?v=7" type="module"></script>
+  </head>
+  <body>
+    <div id="app" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-icon">🚀</span>
+          <span class="brand-name">ResuMatch</span>
+        </div>
+        <nav class="nav">
+          <button type="button" class="nav-item active" data-view="dashboard">Dashboard</button>
+          <button type="button" class="nav-item" data-view="jobs">Job Listings</button>
+          <button type="button" class="nav-item" data-view="profile">Profile</button>
+        </nav>
+        <div class="sidebar-foot">Manual apply · Anna Hackathon</div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1 id="page-title">Dashboard</h1>
+            <p id="page-subtitle" class="page-subtitle">Job search automation overview</p>
+          </div>
+          <div class="topbar-actions">
+            <input id="job-filter" class="search-input" type="search" placeholder="Search jobs, companies…" />
+            <button id="btn-refresh" class="btn primary">Sync jobs</button>
+            <div id="user-chip" class="avatar hidden">ST</div>
+          </div>
+        </header>
+
+        <p id="pipeline-status" class="pipeline-status"></p>
+
+        <!-- Dashboard view -->
+        <section id="view-dashboard" class="view">
+          <div class="kpi-grid">
+            <article class="kpi-card">
+              <div class="kpi-icon blue">📋</div>
+              <div>
+                <div class="kpi-value" id="kpi-matched">0</div>
+                <div class="kpi-label">Matched jobs</div>
+                <div class="kpi-trend" id="kpi-matched-sub">Run Sync jobs</div>
+              </div>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon green">✈️</div>
+              <div>
+                <div class="kpi-value" id="kpi-applied">0</div>
+                <div class="kpi-label">Marked applied</div>
+                <div class="kpi-trend">You click Submit</div>
+              </div>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon orange">🎯</div>
+              <div>
+                <div class="kpi-value" id="kpi-avg-score">—</div>
+                <div class="kpi-label">Avg match score</div>
+                <div class="kpi-trend" id="kpi-score-sub">Target ≥ 80%</div>
+              </div>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon purple">📄</div>
+              <div>
+                <div class="kpi-value" id="kpi-resumes">0</div>
+                <div class="kpi-label">Tailored resumes</div>
+                <div class="kpi-trend">Skills section only</div>
+              </div>
+            </article>
+          </div>
+
+          <div class="dash-grid">
+            <article class="panel-card">
+              <h2>Research sources</h2>
+              <ul id="source-list" class="source-list"></ul>
+            </article>
+            <article class="panel-card">
+              <h2>Application pipeline</h2>
+              <div id="pipeline-chart" class="pipeline-chart"></div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Jobs view -->
+        <section id="view-jobs" class="view hidden">
+          <div id="empty-state" class="empty-state">
+            <p>No jobs yet.</p>
+            <p class="hint">Go to <strong>Dashboard</strong> and click <strong>Sync jobs</strong> to scrape Indeed, match, and build apply packs.</p>
+          </div>
+          <div id="jobs-wrap" class="hidden">
+            <p id="jobs-meta" class="jobs-meta"></p>
+            <div id="jobs-list" class="jobs-list"></div>
+          </div>
+        </section>
+
+        <!-- Profile view -->
+        <section id="view-profile" class="view hidden">
+          <article class="panel-card profile-panel">
+            <h2 id="onboard-title">Your job search profile</h2>
+            <p id="onboard-lead" class="hint">Set job titles and skills before syncing. We scrape Indeed using your query — keep it short (e.g. Python developer).</p>
+            <form id="onboard-form">
+              <div class="form-grid">
+                <label>Your name<input id="input-name" name="name" required placeholder="Satvik Tejas" /></label>
+                <label>Location<input id="input-location" name="location" value="India" /></label>
+              </div>
+              <label>
+                Job titles / Indeed search
+                <input id="input-search" name="search_term" required placeholder="Python developer FastAPI" />
+                <span class="field-note">Short query works best — not a long list of titles.</span>
+              </label>
+              <label>
+                Target skills in job posts
+                <input id="input-target-skills" name="target_skills" placeholder="python, fastapi, docker, aws, llm" />
+              </label>
+              <div class="form-grid three">
+                <label>Domain
+                  <select id="input-domain" name="domain">
+                    <option value="software_engineering">Software engineering</option>
+                    <option value="data_science">Data science</option>
+                    <option value="machine_learning">Machine learning</option>
+                    <option value="devops">DevOps</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                <label>Seniority
+                  <select id="input-seniority" name="seniority">
+                    <option value="intern">Intern</option>
+                    <option value="junior">Junior</option>
+                    <option value="mid" selected>Mid</option>
+                    <option value="senior">Senior</option>
+                  </select>
+                </label>
+                <label>Years<input id="input-years" name="years" type="number" min="0" value="2" /></label>
+              </div>
+              <label>Overleaf resume (.tex)<textarea id="input-latex" name="latex" rows="10" required></textarea></label>
+              <button type="submit" class="btn primary wide">Save profile</button>
+            </form>
+            <p id="onboard-error" class="error hidden"></p>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <div id="boot-screen" class="boot-screen">
+      <div class="boot-card">
+        <h2>ResuMatch</h2>
+        <p>Loading…</p>
+      </div>
+    </div>
+  </body>
+</html>

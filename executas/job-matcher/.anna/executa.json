@@ -1,0 +1,9 @@
+{
+  "$schema": "anna-executa-identity/v1",
+  "host": "https://anna.partners",
+  "executa_id": 1028,
+  "tool_id": "tool-tejasstvk8-job-matcher-uw9mk2et",
+  "slug": "job-matcher",
+  "executa_type": "tool",
+  "first_published_at": "2026-06-19T12:48:37.211Z"
+}

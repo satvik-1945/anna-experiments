@@ -1,0 +1,10 @@
+{
+  "slug": "resumatch-profile",
+  "name": "ResuMatch Profile",
+  "version": "0.1.0",
+  "executa_type": "tool",
+  "tool_id": "tool-tejasstvk8-resumatch-profile-ae86dv2d",
+  "type": "python",
+  "enabled": true,
+  "description": "Save job-search profile (domain, seniority, resume) for ResuMatch pipeline."
+}
