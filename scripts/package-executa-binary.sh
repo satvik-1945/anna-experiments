@@ -35,9 +35,18 @@ rsync -a \
 cat > "$STAGE/bin/$TOOL_ID" <<EOF
 #!/bin/sh
 # ResuMatch executa launcher. Must work when spawned by the Anna desktop
-# Agent, which uses a minimal PATH that excludes Homebrew / ~/.local/bin.
+# Agent via ~/.anna/executa/bin/<tool_id> symlink (minimal PATH).
 set -eu
-ROOT="\$(CDPATH= cd "\$(dirname "\$0")/.." && pwd)"
+# Follow symlinks: bin/<tool_id> -> tools/<tool_id>/current/bin/<tool_id>
+script="\$0"
+while [ -L "\$script" ]; do
+  link="\$(readlink "\$script")"
+  case "\$link" in
+    /*) script="\$link" ;;
+    *) script="\$(CDPATH= cd "\$(dirname "\$script")" && pwd)/\$link" ;;
+  esac
+done
+ROOT="\$(CDPATH= cd "\$(dirname "\$script")/.." && pwd)"
 cd "\$ROOT/src"
 
 # Locate uv even with an empty/minimal PATH.
