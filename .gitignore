@@ -6,6 +6,8 @@ __pycache__/
 .DS_Store
 *.egg-info/
 dist/
+!dist/executas/
+!dist/executas/*.tar.gz
 build/
 .uv/
 anna.local.json
