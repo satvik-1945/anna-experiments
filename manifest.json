@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "permissions": ["tools.invoke", "storage.read", "storage.write"],
+  "permissions": ["tools.invoke", "storage.read", "storage.write", "llm.complete"],
   "required_executas": [
     { "tool_id": "tool-tejasstvk8-resumatch-profile-ae86dv2d" },
     { "tool_id": "tool-tejasstvk8-job-scraper-7yj4tbf2" },
@@ -20,7 +20,7 @@
         "name": "main",
         "title": "ResuMatch",
         "default": true,
-        "default_size": { "w": 820, "h": 920 },
+        "default_size": { "w": 1280, "h": 860 },
         "min_size": { "w": 480, "h": 560 },
         "single_instance": true
       }
@@ -28,7 +28,8 @@
     "host_api": {
       "tools": ["required:*"],
       "storage": ["get", "set"],
-      "window": ["set_title", "ready"]
+      "window": ["set_title", "ready"],
+      "llm": ["complete"]
     },
     "csp_overrides": {},
     "state_merge": "last_writer_wins"

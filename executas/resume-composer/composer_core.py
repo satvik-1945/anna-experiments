@@ -165,10 +165,32 @@ def _reorder_item_line(item_line: str, job_skills: set[str]) -> str:
     return f"{label.strip()}: {_reorder_comma_list(rest, job_skills)}."
 
 
+KEY_SKILLS_MAX_ITEMS = 7
+KEY_SKILLS_MAX_CHARS = 72
+KEY_SKILLS_MAX_TOKEN_LEN = 22
+
+
 def _format_highlights(matched_skills: list[str]) -> str:
+    """Comma-list that fits one tabular row without crossing the right margin."""
     if not matched_skills:
         return ""
-    return ", ".join(s.title() if s.islower() else s for s in matched_skills[:12])
+    parts: list[str] = []
+    total = 0
+    for s in matched_skills:
+        label = str(s).strip()
+        if not label:
+            continue
+        label = label.title() if label.islower() else label
+        if len(label) > KEY_SKILLS_MAX_TOKEN_LEN:
+            continue
+        sep = 2 if parts else 0
+        if len(parts) >= KEY_SKILLS_MAX_ITEMS:
+            break
+        if total + sep + len(label) > KEY_SKILLS_MAX_CHARS:
+            break
+        parts.append(label)
+        total += sep + len(label)
+    return ", ".join(parts)
 
 
 def build_skills_section_itemize(
@@ -187,12 +209,13 @@ def build_skills_section_itemize(
     highlight_line = ""
     if highlights:
         highlight_line = (
-            f"\\item \\textbf{{Role-Aligned Highlights:}} {_format_highlights(highlights)}.\n"
+            f"\\item \\textbf{{Key Skills:}} {_format_highlights(highlights)}.\n"
         )
 
     tailored_items: list[str] = []
     for item in items:
-        if "role-aligned highlights" in item.lower():
+        low = item.lower()
+        if "key skills:" in low or "role-aligned highlights" in low:
             continue
         tailored_items.append(_reorder_item_line(item.strip(), job_skills))
 
@@ -218,17 +241,18 @@ def build_skills_section_tabular(
     highlights = matched_skills or sorted(job_skills)
     highlight_row = ""
     if highlights:
-        highlight_row = f"Role-Aligned & {_format_highlights(highlights)} \\\\\n"
+        highlight_row = f"Key Skills & {_format_highlights(highlights)} \\\\\n"
 
     def repl_row(match: re.Match[str]) -> str:
         label = match.group(1).strip()
-        if "role-aligned" in label.lower():
+        low = label.lower()
+        if "key skills" in low or "role-aligned" in low:
             return match.group(0)
         value = _reorder_comma_list(match.group(2), job_skills)
         return f"{label} & {value} \\\\\n"
 
     inner = original_inner
-    if highlight_row and "role-aligned" not in inner.lower():
+    if highlight_row and "key skills" not in inner.lower() and "role-aligned" not in inner.lower():
         inner = re.sub(
             r"(\\begin\{tabular\}[^\n]*\n)",
             lambda m: m.group(1) + highlight_row,
@@ -268,10 +292,16 @@ def replace_skills_section(tex: str, new_section: str) -> str:
 def compose_for_job(
     entry: dict[str, Any],
     base_tex: str | None = None,
+    key_skills: list[str] | None = None,
 ) -> dict[str, Any]:
     tex = base_tex or load_base_tex()
     job = entry.get("job") or entry
-    matched = entry.get("matched_skills") or sorted(_job_skills(job) & _resume_skill_pool(tex))
+    if key_skills:
+        # LLM-extracted key skills from the JD — used verbatim (no intersection
+        # with the resume), so the "Key Skills" line reflects the real role.
+        matched = [str(s).strip() for s in key_skills if str(s).strip()]
+    else:
+        matched = entry.get("matched_skills") or sorted(_job_skills(job) & _resume_skill_pool(tex))
 
     block = find_skills_block(tex)
     if not block:
@@ -445,8 +475,18 @@ def compile_pdf(
     company: str | None = None,
     base: bool = False,
     to_downloads: bool = True,
+    key_skills: list[str] | None = None,
 ) -> dict[str, Any]:
-    path, entry = _resolve_tex_path(job_index=job_index, tex_path=tex_path, base=base)
+    if key_skills and not base and tex_path is None and job_index is not None:
+        # Re-tailor this job with the LLM-extracted key skills before compiling.
+        passed = load_passed_jobs()
+        if job_index < 0 or job_index >= len(passed):
+            raise ValueError(f"job_index out of range (0..{len(passed) - 1})")
+        entry = passed[job_index]
+        result = compose_for_job(entry, key_skills=list(key_skills))
+        path = Path(result["output_path"])
+    else:
+        path, entry = _resolve_tex_path(job_index=job_index, tex_path=tex_path, base=base)
     tex = _fix_tex_for_tectonic(path.read_text(encoding="utf-8"))
     work_dir = path.parent
     _ensure_resume_cls(work_dir, tex)

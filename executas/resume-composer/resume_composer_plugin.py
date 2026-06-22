@@ -73,6 +73,12 @@ MANIFEST = {
                     "description": "Also copy the compiled PDF to ~/Downloads (default true)",
                     "required": False,
                 },
+                {
+                    "name": "key_skills",
+                    "type": "array",
+                    "description": "LLM-extracted key skills from the JD; render verbatim in the Key Skills line (compile_pdf)",
+                    "required": False,
+                },
             ],
         }
     ],
@@ -103,6 +109,12 @@ def invoke(tool: str, args: dict[str, Any]) -> dict[str, Any]:
         base = bool(args.get("base", False))
         if index is None and not tex_path and not base:
             raise ValueError("compile_pdf requires job_index, tex_path, or base=true")
+        raw_key_skills = args.get("key_skills")
+        key_skills = (
+            [str(s).strip() for s in raw_key_skills if str(s).strip()]
+            if isinstance(raw_key_skills, list)
+            else None
+        )
         result = compile_pdf(
             job_index=int(index) if index is not None else None,
             tex_path=str(tex_path) if tex_path else None,
@@ -110,6 +122,7 @@ def invoke(tool: str, args: dict[str, Any]) -> dict[str, Any]:
             to_downloads=bool(args.get("to_downloads", True)),
             job_title=str(args.get("job_title")) if args.get("job_title") else None,
             company=str(args.get("company")) if args.get("company") else None,
+            key_skills=key_skills,
         )
         return {"success": True, "data": result}
 

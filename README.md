@@ -104,11 +104,11 @@ anna-app executa dev --invoke application_pack --args '{"action":"list"}' --json
 
 ## Tool APIs
 
-**job_scraper** — `scrape`, `summary`, `use_profile`, `include_free_apis` (default true), `mode: free|boost`
+**job_scraper** — `scrape`, `refilter`, `cache_status`, `summary`, `get_job` (single JD by index, for LLM key-skill extraction); `use_profile`, `include_free_apis` (default true), `mode: free|boost`
 
 **user_profile** — `save` with **`resume_latex`**, `get`, `domains`, `scraper_defaults`
 
-**resume_composer** — `compose`, `compose_all`, `compile_pdf`, `list`
+**resume_composer** — `compose`, `compose_all`, `compile_pdf` (accepts `key_skills` for LLM-tailored "Key Skills"), `list`
 
 **application_pack** — `prepare_all`, `prepare`, `list`
 

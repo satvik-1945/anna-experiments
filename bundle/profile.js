@@ -14,6 +14,15 @@ export function findRole(catalog, roleId) {
   return catalog?.roles?.find((r) => r.id === roleId) || null;
 }
 
+let _resumeTemplate = null;
+export async function loadResumeTemplate() {
+  if (_resumeTemplate) return _resumeTemplate;
+  const res = await fetch("./data/resume-template.tex");
+  if (!res.ok) throw new Error("Could not load the starter resume template.");
+  _resumeTemplate = await res.text();
+  return _resumeTemplate;
+}
+
 export function populateRoleSelect(selectEl, catalog, selectedId) {
   if (!selectEl || !catalog?.roles) return;
   selectEl.innerHTML = '<option value="">— Select a role —</option>';

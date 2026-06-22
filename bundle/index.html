@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ResuMatch</title>
     <link rel="stylesheet" href="./style.css" />
-    <script src="./app.js?v=17" type="module"></script>
+    <script src="./app.js?v=20" type="module"></script>
   </head>
   <body>
     <div id="app" class="app-shell hidden">
@@ -15,35 +15,39 @@
           <span class="brand-name">ResuMatch</span>
         </div>
         <nav class="nav">
-          <button type="button" class="nav-item active" data-view="dashboard">
-            <span class="nav-ico">▦</span> Dashboard
+          <button type="button" class="nav-item active" data-view="dashboard" title="Dashboard">
+            <span class="nav-ico">▦</span> <span class="nav-label">Dashboard</span>
           </button>
-          <button type="button" class="nav-item" data-view="jobs">
-            <span class="nav-ico">≣</span> Job Listings
+          <button type="button" class="nav-item" data-view="jobs" title="Job Listings">
+            <span class="nav-ico">≣</span> <span class="nav-label">Job Listings</span>
           </button>
-          <button type="button" class="nav-item" data-nav="profile">
-            <span class="nav-ico">◍</span> Profile
+          <button type="button" class="nav-item" data-nav="profile" title="Profile">
+            <span class="nav-ico">◍</span> <span class="nav-label">Profile</span>
           </button>
-          <button type="button" class="nav-item" data-view="resume">
-            <span class="nav-ico">▤</span> Resume
+          <button type="button" class="nav-item" data-view="resume" title="Resume">
+            <span class="nav-ico">▤</span> <span class="nav-label">Resume</span>
           </button>
-          <button type="button" class="nav-item" data-view="settings">
-            <span class="nav-ico">⚙</span> Settings
+          <button type="button" class="nav-item" data-view="settings" title="Settings">
+            <span class="nav-ico">⚙</span> <span class="nav-label">Settings</span>
           </button>
         </nav>
       </aside>
 
       <main class="main">
         <header class="topbar">
-          <div class="topbar-title">
-            <h1 id="page-title">Dashboard</h1>
-            <p id="page-subtitle" class="page-subtitle">Job automation overview</p>
+          <div class="topbar-left">
+            <button type="button" id="btn-nav-toggle" class="nav-toggle" aria-label="Collapse sidebar" title="Collapse sidebar">☰</button>
+            <div class="topbar-title">
+              <h1 id="page-title">Dashboard</h1>
+              <p id="page-subtitle" class="page-subtitle">Job automation overview</p>
+            </div>
           </div>
           <div class="topbar-actions">
             <div class="search-box">
               <span class="search-ico">⌕</span>
               <input id="job-filter" class="search-input" type="search" placeholder="Search jobs, companies…" />
             </div>
+            <button type="button" id="btn-tour" class="icon-btn" aria-label="App tour" title="Take the tour">?</button>
             <button type="button" id="user-menu-btn" class="user-menu-btn" aria-haspopup="dialog">
               <span id="user-avatar" class="avatar">ST</span>
               <span id="user-menu-name" class="user-menu-name">Profile</span>
@@ -186,27 +190,35 @@
         <!-- SETTINGS -->
         <section id="view-settings" class="view hidden">
           <article class="panel-card fetch-card">
-            <h2>Fetch jobs</h2>
-            <p class="hint">Searches the boards for your <strong>profile role</strong> and tailors a resume to every
-            result. Pick how far back to look — wider gives more variety. Narrow what you see anytime in
-            <strong>Job Listings</strong>.</p>
-            <div class="scrape-toolbar">
-              <div class="toolbar-field readonly">
-                <span class="tf-label">Profile role</span>
-                <strong id="scrape-role-label">your profile role</strong>
-                <button type="button" class="link-btn" id="btn-edit-profile-settings">Edit in profile</button>
+            <div class="fetch-head">
+              <div class="fetch-head-copy">
+                <h2>Fetch jobs</h2>
+                <p class="fetch-lead">Search boards for your profile role, tailor a resume to every match, and load them into Job Listings.</p>
               </div>
-              <label class="toolbar-field">
-                <span class="tf-label">Posted within</span>
-                <select id="filter-hours" aria-label="Posted within">
-                  <option value="24">Last 24 hours</option>
-                  <option value="48">Last 48 hours</option>
-                  <option value="72">Last 3 days</option>
-                  <option value="168" selected>Last 7 days</option>
-                  <option value="336">Last 14 days</option>
-                  <option value="720">Last 30 days</option>
-                </select>
-              </label>
+              <div id="fetch-summary" class="fetch-summary" aria-live="polite"></div>
+            </div>
+
+            <div class="fetch-panel">
+              <div class="fetch-fields">
+                <div class="fetch-field">
+                  <span class="fetch-label">Profile role</span>
+                  <div class="fetch-role-box">
+                    <span id="scrape-role-label" class="fetch-role-value">your profile role</span>
+                    <button type="button" class="fetch-edit-link" id="btn-edit-profile-settings">Edit profile</button>
+                  </div>
+                </div>
+                <label class="fetch-field">
+                  <span class="fetch-label">Posted within</span>
+                  <select id="filter-hours" class="fetch-select" aria-label="Posted within">
+                    <option value="24">Last 24 hours</option>
+                    <option value="48">Last 48 hours</option>
+                    <option value="72">Last 3 days</option>
+                    <option value="168" selected>Last 7 days</option>
+                    <option value="336">Last 14 days</option>
+                    <option value="720">Last 30 days</option>
+                  </select>
+                </label>
+              </div>
               <button id="btn-scrape" class="btn primary fetch-btn" type="button" title="Fetch from Indeed + free APIs">
                 <span class="fetch-btn-ico" aria-hidden="true">⟳</span>
                 <span class="fetch-btn-label">Fetch jobs</span>
@@ -222,9 +234,7 @@
               </ol>
             </div>
 
-            <div id="fetch-summary" class="fetch-summary"></div>
-            <p class="fetch-hint hint">Fetching can be costly — fetch once, then refine freely in
-            <strong>Job Listings</strong> without re-scraping.</p>
+            <p class="fetch-footnote">Use fetch wisely — scraping can be costly. After one run, refine freely in <strong>Job Listings</strong> without re-scraping.</p>
           </article>
 
           <article class="panel-card storage-panel">
@@ -318,7 +328,14 @@
             </label>
             <label>Years experience<input id="input-years" name="years" type="number" min="0" value="2" required /></label>
           </div>
-          <label>Overleaf resume (.tex)<textarea id="input-latex" name="latex" rows="12" required placeholder="Paste full \documentclass{resume} ... \end{document}"></textarea></label>
+          <label>
+            <span class="latex-label-row">
+              Overleaf resume (.tex)
+              <button type="button" class="link-btn" id="btn-load-template">Load starter template</button>
+            </span>
+            <textarea id="input-latex" name="latex" rows="12" required placeholder="Paste your full \documentclass{resume} ... \end{document}, or click Load starter template to start from a blank structure."></textarea>
+            <span class="field-note">No resume yet? Load the starter template and fill in your details — keep the Skills section so we can tailor it per job.</span>
+          </label>
           <div class="modal-actions">
             <button type="submit" class="btn primary">Save profile</button>
             <button type="button" class="btn ghost" id="btn-cancel-profile">Cancel</button>
@@ -346,6 +363,21 @@
           <div id="pdf-pages" class="pdf-pages"></div>
         </div>
         <p id="pdf-modal-error" class="error hidden"></p>
+      </div>
+    </div>
+
+    <!-- Guided tour -->
+    <div id="tour" class="tour hidden" role="dialog" aria-label="App tour">
+      <div id="tour-ring" class="tour-ring"></div>
+      <div id="tour-tip" class="tour-tip">
+        <p id="tour-text" class="tour-text"></p>
+        <div class="tour-foot">
+          <span id="tour-progress" class="tour-progress"></span>
+          <div class="tour-btns">
+            <button type="button" id="tour-skip" class="btn ghost small">Skip</button>
+            <button type="button" id="tour-next" class="btn primary small">Next</button>
+          </div>
+        </div>
       </div>
     </div>
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -32,10 +33,63 @@ class ResumeComposerTests(unittest.TestCase):
             os.environ["RESUMATCH_RESUMES_DIR"] = tmp
             result = compose_for_job(entry, base_tex=base)
             out = Path(result["output_path"]).read_text(encoding="utf-8")
-            self.assertIn("Role-Aligned Highlights", out)
+            self.assertIn("Key Skills", out)
             self.assertIn("Python", out)
             self.assertNotIn("Kubernetes", out)  # not in original resume — no fabrication
             self.assertIn("\\section{Education}", out)
+
+    def test_key_skills_used_verbatim(self) -> None:
+        base = FIXTURE_TEX.read_text(encoding="utf-8")
+        entry = {
+            "job": {
+                "title": "Lead Software Engineer",
+                "company": "Wells Fargo",
+                "description": "Kubernetes Kafka Terraform Azure required.",
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["RESUMATCH_RESUMES_DIR"] = tmp
+            result = compose_for_job(
+                entry, base_tex=base, key_skills=["Kubernetes", "Kafka", "Terraform"]
+            )
+            out = Path(result["output_path"]).read_text(encoding="utf-8")
+            self.assertIn("Key Skills", out)
+            # LLM key skills render even when absent from the resume pool.
+            self.assertIn("Kubernetes", out)
+            self.assertIn("Kafka", out)
+            self.assertEqual(result["matched_skills_used"], ["Kubernetes", "Kafka", "Terraform"])
+
+    def test_key_skills_fits_one_tabular_line(self) -> None:
+        from composer_core import _format_highlights
+
+        long = [
+            "React JS",
+            "Node JS",
+            "Web Application Development",
+            "AI Tools",
+            "Software Development",
+            "JavaScript",
+            "Full Stack Development",
+            "Python",
+            "Docker",
+        ]
+        line = _format_highlights(long)
+        self.assertLessEqual(len(line), 72)
+        self.assertNotIn("Web Application", line)
+        self.assertIn("React", line)
+
+        base = FIXTURE_RSECTION.read_text(encoding="utf-8")
+        entry = {
+            "job": {"title": "Full Stack", "company": "Co", "description": "React Node"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["RESUMATCH_RESUMES_DIR"] = tmp
+            result = compose_for_job(entry, base_tex=base, key_skills=long)
+            out = Path(result["output_path"]).read_text(encoding="utf-8")
+            m = re.search(r"Key Skills & (.+?) \\\\", out)
+            self.assertIsNotNone(m)
+            value = m.group(1)
+            self.assertLessEqual(len(value), 72)
 
     def test_replace_skills_preserves_rest(self) -> None:
         base = FIXTURE_TEX.read_text(encoding="utf-8")
@@ -60,7 +114,7 @@ class ResumeComposerTests(unittest.TestCase):
             result = compose_for_job(entry, base_tex=base)
             out = Path(result["output_path"]).read_text(encoding="utf-8")
             self.assertEqual(result["skills_format"], "rsection")
-            self.assertIn("Role-Aligned", out)
+            self.assertIn("Key Skills", out)
             self.assertIn("\\begin{rSection}{Technical Skills}", out)
             self.assertIn("FastAPI", out)
 

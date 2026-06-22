@@ -38,7 +38,7 @@ MANIFEST = {
                 {
                     "name": "action",
                     "type": "string",
-                    "description": "One of: scrape, refilter, cache_status, summary",
+                    "description": "One of: scrape, refilter, cache_status, summary, get_job",
                     "required": True,
                 },
                 {
@@ -222,6 +222,38 @@ def cache_status_action() -> dict[str, Any]:
         except (json.JSONDecodeError, OSError):
             out["latest_error"] = "Could not read jobs_latest.json"
     return out
+
+
+def get_job_action(args: dict[str, Any]) -> dict[str, Any]:
+    """Return a single job (title/company/description) by its index in the
+    latest fetch — small payload so the UI can pass the JD to the LLM without
+    shipping every description across RPC."""
+    index = args.get("job_index")
+    if index is None:
+        raise ValueError("get_job requires job_index")
+    index = int(index)
+    latest_path = _latest_path()
+    if not latest_path.exists():
+        raise ValueError("No jobs yet. Click Fetch jobs first.")
+    try:
+        latest = json.loads(latest_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        raise ValueError("Could not read jobs_latest.json") from exc
+    jobs = list(latest.get("jobs") or [])
+    if index < 0 or index >= len(jobs):
+        raise ValueError(f"job_index out of range (0..{len(jobs) - 1})")
+    job = jobs[index]
+    desc = str(job.get("description") or "")
+    max_chars = int(args.get("description_max_chars", 6000))
+    if max_chars and len(desc) > max_chars:
+        desc = desc[:max_chars]
+    return {
+        "job_index": index,
+        "title": job.get("title"),
+        "company": job.get("company"),
+        "location": job.get("location"),
+        "description": desc,
+    }
 
 
 def _log(msg: str) -> None:
@@ -515,6 +547,8 @@ def invoke(
         return {"success": True, "data": cache_status_action()}
     if action == "summary":
         return {"success": True, "data": summary_action()}
+    if action == "get_job":
+        return {"success": True, "data": get_job_action(args)}
     raise ValueError(f"unknown action: {action}")
 
 

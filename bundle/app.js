@@ -6,6 +6,7 @@ import {
   fillProfileForm,
   isProfileComplete,
   loadJobCatalog,
+  loadResumeTemplate,
   populateDomainSelect,
   populateRoleSelect,
   findRole,
@@ -17,6 +18,8 @@ const STATUS_KEY = "resumatch:status";
 const APPLIED_KEY = "resumatch:applied";
 const FILTER_PREFS_KEY = "resumatch:scrape-filters";
 const LAST_FETCH_KEY = "resumatch:last-fetch";
+const NAV_COLLAPSE_KEY = "resumatch:nav-collapsed";
+const ONBOARD_KEY = "resumatch:onboarded";
 const SCRAPE_RESULTS_WANTED = 500;
 const SCRAPE_TIMEOUT_MS = 300_000;
 const COMPOSE_TIMEOUT_MS = 600_000;
@@ -310,6 +313,80 @@ const VIEW_TITLES = {
   settings: ["Settings", "Fetch fresh jobs when needed"],
 };
 
+/* ---------------- guided tour ---------------- */
+const TOUR_STEPS = [
+  { sel: '[data-view="dashboard"]', text: "Dashboard — your live KPIs (applications, interviews, offers) and most recent applications at a glance." },
+  { sel: '[data-view="jobs"]', text: "Job Listings — every fetched role with a tailored resume. Filter by status, seniority, or date, then Open & Apply or Preview PDF." },
+  { sel: '[data-nav="profile"]', text: "Profile — save your details and Overleaf resume once. It powers the job search and per-job tailoring." },
+  { sel: '[data-view="resume"]', text: "Resume — review your base resume and preview it as a PDF before you tailor it per job." },
+  { sel: "#btn-scrape", text: "Settings → Fetch jobs runs the whole pipeline: search the boards, tailor a resume to each result, and build your list. Do it once a day.", before: () => switchView("settings") },
+  { sel: "#user-menu-btn", text: "Your profile is always one click away here. That's the tour — happy hunting!" },
+];
+let _tourIdx = 0;
+let _tourDone = null;
+
+function startTour(onDone) {
+  _tourDone = typeof onDone === "function" ? onDone : null;
+  _tourIdx = 0;
+  show($("tour"));
+  showTourStep();
+}
+function endTour() {
+  hide($("tour"));
+  localStorage.setItem(ONBOARD_KEY, "1");
+  const cb = _tourDone;
+  _tourDone = null;
+  if (cb) cb();
+}
+function showTourStep() {
+  const step = TOUR_STEPS[_tourIdx];
+  if (!step) { endTour(); return; }
+  if (step.before) { try { step.before(); } catch { /* ignore */ } }
+  requestAnimationFrame(() => {
+    const el = document.querySelector(step.sel);
+    if (!el) { _tourIdx += 1; showTourStep(); return; }
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    const r = el.getBoundingClientRect();
+    const pad = 6;
+    const ring = $("tour-ring");
+    ring.style.top = `${r.top - pad}px`;
+    ring.style.left = `${r.left - pad}px`;
+    ring.style.width = `${r.width + pad * 2}px`;
+    ring.style.height = `${r.height + pad * 2}px`;
+    $("tour-text").textContent = step.text;
+    $("tour-progress").textContent = `${_tourIdx + 1} / ${TOUR_STEPS.length}`;
+    $("tour-next").textContent = _tourIdx === TOUR_STEPS.length - 1 ? "Done" : "Next";
+    const tip = $("tour-tip");
+    const tipW = 300;
+    const below = r.bottom + 12;
+    const top = below + 150 > window.innerHeight ? Math.max(12, r.top - 162) : below;
+    let left = r.left;
+    if (left + tipW > window.innerWidth - 12) left = window.innerWidth - tipW - 12;
+    tip.style.top = `${Math.max(12, top)}px`;
+    tip.style.left = `${Math.max(12, left)}px`;
+  });
+}
+
+/* ---------------- sidebar collapse ---------------- */
+function applyNavCollapsed(collapsed) {
+  const app = $("app");
+  if (app) app.classList.toggle("nav-collapsed", collapsed);
+  const toggle = $("btn-nav-toggle");
+  if (toggle) {
+    toggle.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+    toggle.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+  }
+}
+function initNavCollapse() {
+  const collapsed = localStorage.getItem(NAV_COLLAPSE_KEY) === "1";
+  applyNavCollapsed(collapsed);
+  $("btn-nav-toggle")?.addEventListener("click", () => {
+    const next = !$("app")?.classList.contains("nav-collapsed");
+    localStorage.setItem(NAV_COLLAPSE_KEY, next ? "1" : "0");
+    applyNavCollapsed(next);
+  });
+}
+
 function switchView(view) {
   for (const el of document.querySelectorAll(".view")) hide(el);
   show($(`view-${view}`));
@@ -336,6 +413,21 @@ async function openProfileModal(anna, { forced = false } = {}) {
   }
   show($("profile-modal"));
   $("input-name")?.focus();
+}
+
+/** No resume yet? Open the profile editor, preload the starter template, and
+ *  nudge the user — instead of letting a PDF build fail downstream. */
+async function promptAddResume(anna) {
+  onStep("Add your resume first — fill in your profile to preview tailored PDFs.", true);
+  await openProfileModal(anna, { forced: true });
+  const ta = $("input-latex");
+  if (ta && !ta.value.trim()) {
+    try { ta.value = await loadResumeTemplate(); } catch { /* ignore */ }
+  }
+  if ($("profile-form-error")) {
+    $("profile-form-error").textContent = "Paste your Overleaf resume, or use Load starter template, then Save.";
+    show($("profile-form-error"));
+  }
 }
 
 function closeProfileModal() {
@@ -615,7 +707,86 @@ function closePdfModal() {
   $("pdf-pages").innerHTML = "";
 }
 
+/* ---------------- LLM key-skill extraction ---------------- */
+const KEY_SKILLS_MAX = 7;
+const KEY_SKILLS_MAX_CHARS = 72;
+const KEY_SKILLS_MAX_TOKEN = 22;
+
+const KEY_SKILLS_PROMPT =
+  "You are a resume keyword extractor. From the job description below, return ONLY a " +
+  "JSON array of exactly 7 hard skills or technologies — the most important for ATS. " +
+  "Each item must be 1-2 words (e.g. \"React\", \"Node.js\", \"Kubernetes\"). " +
+  "No sentences, no phrases like \"Web Application Development\", no soft skills, no duplicates.";
+
+function fitKeySkillsLine(skills) {
+  const parts = [];
+  let total = 0;
+  for (const raw of skills) {
+    const s = String(raw).trim();
+    if (!s || s.length > KEY_SKILLS_MAX_TOKEN) continue;
+    const sep = parts.length ? 2 : 0;
+    if (parts.length >= KEY_SKILLS_MAX) break;
+    if (total + sep + s.length > KEY_SKILLS_MAX_CHARS) break;
+    parts.push(s);
+    total += sep + s.length;
+  }
+  return parts;
+}
+
+function parseSkillList(text) {
+  if (!text) return [];
+  let arr = null;
+  const match = text.match(/\[[\s\S]*\]/);
+  if (match) {
+    try { arr = JSON.parse(match[0]); } catch { /* fall through */ }
+  }
+  if (!Array.isArray(arr)) {
+    arr = text.replace(/^[^[]*\[|\][^\]]*$/g, "").split(/[,\n]+/);
+  }
+  const seen = new Set();
+  const out = [];
+  for (const raw of arr) {
+    const s = String(raw).replace(/["'`\u2022]+/g, " ").trim();
+    if (!s || s.length > KEY_SKILLS_MAX_TOKEN) continue;
+    const k = s.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(s);
+    if (out.length >= KEY_SKILLS_MAX) break;
+  }
+  return fitKeySkillsLine(out);
+}
+
+/** Ask Anna's LLM for the JD's key skills. Returns [] (never throws) so PDF
+ *  building always proceeds even if sampling is unavailable/ungranted. */
+async function deriveKeySkills(anna, pack) {
+  if (pack.base || pack.job_index == null) return [];
+  if (!anna?.llm?.complete) return [];
+  try {
+    const job = await invokeTool(anna, "scraper", {
+      action: "get_job",
+      job_index: pack.job_index,
+    });
+    const desc = String(job?.description || "").trim();
+    if (desc.length < 40) return [];
+    const reply = await anna.llm.complete({
+      messages: [
+        { role: "user", content: { type: "text", text: `${KEY_SKILLS_PROMPT}\n\nJOB DESCRIPTION:\n${desc}` } },
+      ],
+      maxTokens: 200,
+    });
+    return parseSkillList(reply?.content?.text || "");
+  } catch (err) {
+    console.warn("Key-skill extraction skipped:", err?.message || err);
+    return [];
+  }
+}
+
 async function exportResumePdf(anna, pack, btn) {
+  if (!pack.base && !pack.resume_tex_path && !isProfileComplete(state.profile)) {
+    await promptAddResume(anna);
+    return;
+  }
   const label = btn?.textContent;
   if (btn) { btn.disabled = true; btn.textContent = "Building…"; }
   hide($("pdf-modal-error"));
@@ -631,6 +802,17 @@ async function exportResumePdf(anna, pack, btn) {
     else throw new Error("No resume yet — click Fetch jobs first.");
     if (pack.job_title) args.job_title = pack.job_title;
     if (pack.company) args.company = pack.company;
+
+    if (!pack.base && pack.job_index != null) {
+      $("pdf-saved-note").textContent = "Reading the job description for key skills…";
+      const keySkills = await deriveKeySkills(anna, pack);
+      if (keySkills.length) {
+        args.key_skills = keySkills;
+        $("pdf-saved-note").textContent = `Tailoring to ${keySkills.length} key skills…`;
+      } else {
+        $("pdf-saved-note").textContent = "Compiling LaTeX…";
+      }
+    }
 
     const data = await invokeTool(anna, "composer", args, PDF_TIMEOUT_MS);
     if (!data?.pdf_base64) throw new Error("PDF compile returned empty data.");
@@ -768,6 +950,7 @@ async function main() {
   applyScrapeFiltersToUi();
   updateFetchButton();
   setInterval(updateFetchButton, 60_000);
+  initNavCollapse();
 
   document.querySelectorAll(".nav-item").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -781,9 +964,26 @@ async function main() {
 
   $("btn-view-all-jobs")?.addEventListener("click", () => switchView("jobs"));
 
+  $("btn-tour")?.addEventListener("click", () => startTour());
+  $("tour-skip")?.addEventListener("click", endTour);
+  $("tour-next")?.addEventListener("click", () => { _tourIdx += 1; showTourStep(); });
+
   $("input-role")?.addEventListener("change", (e) => {
     const role = findRole(state.catalog, e.target.value);
     if (role) applyRoleToForm($("profile-form"), role);
+  });
+
+  $("btn-load-template")?.addEventListener("click", async () => {
+    const ta = $("input-latex");
+    if (!ta) return;
+    if (ta.value.trim() && !confirm("Replace the current resume LaTeX with the starter template?")) return;
+    try {
+      ta.value = await loadResumeTemplate();
+      ta.focus();
+    } catch (err) {
+      $("profile-form-error").textContent = friendlyError(err);
+      show($("profile-form-error"));
+    }
   });
 
   $("user-menu-btn")?.addEventListener("click", () => openProfileModal(anna));
@@ -800,7 +1000,7 @@ async function main() {
   $("btn-print-pdf")?.addEventListener("click", () => window.print());
 
   $("btn-preview-base")?.addEventListener("click", () => {
-    if (!isProfileComplete(state.profile)) { openProfileModal(anna, { forced: true }); return; }
+    if (!isProfileComplete(state.profile)) { promptAddResume(anna); return; }
     exportResumePdf(anna, { base: true, job_title: "Base resume", company: state.profile?.name || "" }, $("btn-preview-base"));
   });
 
@@ -892,6 +1092,7 @@ async function main() {
   hide($("boot-screen"));
   show($("app"));
 
+  const firstRun = localStorage.getItem(ONBOARD_KEY) !== "1";
   try {
     const profile = await getProfile(anna);
     state.profile = profile;
@@ -899,7 +1100,9 @@ async function main() {
     switchView("dashboard");
 
     if (!isProfileComplete(profile)) {
-      await openProfileModal(anna, { forced: true });
+      // New users: walk the tour first, then nudge them to set up the profile.
+      if (firstRun) startTour(() => openProfileModal(anna, { forced: true }));
+      else await openProfileModal(anna, { forced: true });
     } else {
       await loadCacheStatus(anna);
       try {
@@ -907,11 +1110,13 @@ async function main() {
       } catch {
         state.packs = [];
       }
+      if (firstRun) startTour();
     }
     renderAll();
   } catch {
     switchView("dashboard");
-    await openProfileModal(anna, { forced: true });
+    if (firstRun) startTour(() => openProfileModal(anna, { forced: true }));
+    else await openProfileModal(anna, { forced: true });
   }
 }
 

@@ -9,7 +9,7 @@ ResuMatch is an Anna App that helps you job-hunt efficiently on your own machine
 Anyone who applies manually and wants speed without losing control — especially software engineers and students who already maintain a LaTeX resume.
 
 **How AI is used**  
-ResuMatch uses deterministic skill matching and LaTeX tailoring (highlight skills that appear in each job description). It is designed to run on Anna's agent platform: Executas handle scraping, composition, and packing; the SPA calls them via `tools.invoke`. Future versions can add Anna LLM "fit + gap" explanations per job.
+ResuMatch calls **Anna's LLM** (`anna.llm.complete`) to read each job description and extract the role's most important "Key Skills," which are written into a tailored copy of your LaTeX resume before you apply. Executas handle scraping, composition, and packing; the SPA orchestrates them via `tools.invoke`. If LLM access isn't granted, it falls back to deterministic skill matching so PDF building never breaks.
 
 **How it connects to Anna**  
 - **4 Tool Executas:** profile, job-scraper, resume-composer, application-pack  
@@ -37,11 +37,13 @@ ResuMatch uses deterministic skill matching and LaTeX tailoring (highlight skill
 | App slug | `resumatch` |
 | App ID | `136` |
 | Developer handle | `@tejasstvk8` |
-| Latest version | `0.1.1` |
-| Status | `pending_review` (submitted) |
+| Latest published version | `0.1.1` (`pending_review`) |
+| Next version | `0.1.2` — UI fix + LLM Key Skills (ready to publish) |
 | Old drafts removed | `anna-experiments`, `executa-job-scraper` deleted |
 
-**Next step for installable App Store build:** wait for admin approval → `anna-app apps release 0.1.1` → install from Anna App Store.
+**Full step-by-step publishing instructions:** see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+**To ship `0.1.2`:** `anna-app validate --strict` → `anna-app apps push` → `anna-app apps publish --bump patch` → `anna-app apps submit-review resumatch`. After approval: `anna-app apps release 0.1.2`.
 
 Until approved, use the local harness: `./scripts/dev.sh` → open `http://localhost:5180`.
 
@@ -49,7 +51,9 @@ Until approved, use the local harness: `./scripts/dev.sh` → open `http://local
 
 ## Deploy / update (developer commands)
 
-From repo root, with `anna-app login` already done:
+**Full guide (two apps explained, file map, delete stray apps, troubleshooting):** [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+Quick sequence to ship **v0.1.2** from repo root (`anna-app login` first):
 
 ```bash
 # 1. Validate
