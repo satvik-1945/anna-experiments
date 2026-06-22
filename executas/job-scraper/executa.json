@@ -1,10 +1,32 @@
 {
   "slug": "job-scraper",
   "name": "Job Scraper",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "executa_type": "tool",
   "tool_id": "tool-tejasstvk8-job-scraper-7yj4tbf2",
   "type": "python",
   "enabled": true,
-  "description": "Scrape recent job listings (Indeed, Google Jobs, optional LinkedIn boost) for ResuMatch manual apply workflow."
+  "description": "Scrape recent job listings (Indeed, Google Jobs, optional LinkedIn boost) for ResuMatch manual apply workflow.",
+  "distribution": {
+    "active": "binary",
+    "profiles": {
+      "local": {
+        "type": "local",
+        "executable_name": "tool-tejasstvk8-job-scraper-7yj4tbf2",
+        "supports_protocol": true
+      },
+      "binary": {
+        "type": "binary",
+        "executable_name": "tool-tejasstvk8-job-scraper-7yj4tbf2",
+        "supports_protocol": true,
+        "binary_urls": {
+          "darwin-arm64": {
+            "url": "https://raw.githubusercontent.com/satvik-1945/anna-experiments/main/dist/executas/tool-tejasstvk8-job-scraper-7yj4tbf2-darwin-arm64.tar.gz",
+            "entrypoint": "bin/tool-tejasstvk8-job-scraper-7yj4tbf2",
+            "format": "tar.gz"
+          }
+        }
+      }
+    }
+  }
 }

@@ -1,9 +1,31 @@
 {
   "slug": "resume-composer",
   "name": "Resume Composer",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "executa_type": "tool",
   "tool_id": "tool-tejasstvk8-resume-composer-yf9kf9ja",
   "type": "python",
-  "enabled": true
+  "enabled": true,
+  "distribution": {
+    "active": "binary",
+    "profiles": {
+      "local": {
+        "type": "local",
+        "executable_name": "tool-tejasstvk8-resume-composer-yf9kf9ja",
+        "supports_protocol": true
+      },
+      "binary": {
+        "type": "binary",
+        "executable_name": "tool-tejasstvk8-resume-composer-yf9kf9ja",
+        "supports_protocol": true,
+        "binary_urls": {
+          "darwin-arm64": {
+            "url": "https://raw.githubusercontent.com/satvik-1945/anna-experiments/main/dist/executas/tool-tejasstvk8-resume-composer-yf9kf9ja-darwin-arm64.tar.gz",
+            "entrypoint": "bin/tool-tejasstvk8-resume-composer-yf9kf9ja",
+            "format": "tar.gz"
+          }
+        }
+      }
+    }
+  }
 }
