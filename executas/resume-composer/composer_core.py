@@ -14,12 +14,14 @@ from pathlib import Path
 from typing import Any
 
 RESUMATCH_DIR = Path.home() / ".anna" / "resumatch"
-DEFAULT_MATCH_PATH = RESUMATCH_DIR / "match_results.json"
+DEFAULT_JOBS_PATH = RESUMATCH_DIR / "jobs_latest.json"
 DEFAULT_PROFILE_PATH = RESUMATCH_DIR / "profile.json"
 DEFAULT_RESUME_TEX_PATH = RESUMATCH_DIR / "resume_base.tex"
 DEFAULT_OUTPUT_DIR = RESUMATCH_DIR / "resumes"
 DEFAULT_PDF_DIR = RESUMATCH_DIR / "pdfs"
+DEFAULT_DOWNLOADS_DIR = Path.home() / "Downloads"
 BUNDLED_RESUME_CLS = Path(__file__).resolve().parent / "assets" / "resume.cls"
+EXECUTA_DIR = Path(__file__).resolve().parent
 
 SECTION_SKILLS_RE = re.compile(
     r"(\\section\{Skills\})(.*?)(?=\\section[\{\*])",
@@ -88,25 +90,23 @@ def load_base_tex() -> str:
     )
 
 
-def load_passed_jobs(limit: int | None = None) -> list[dict[str, Any]]:
-    match_path = _path("RESUMATCH_MATCH_PATH", DEFAULT_MATCH_PATH)
-    if not match_path.exists():
-        raise ValueError("No match_results.json — run job_matcher action score first.")
-    raw = json.loads(match_path.read_text(encoding="utf-8"))
-    passed = list(raw.get("passed") or [])
-    if not passed:
-        results = raw.get("results") or []
-        cap = limit or int(raw.get("ensure_passed") or 15) or 15
-        if results:
-            passed = results[:cap]
-        else:
-            raise ValueError(
-                "No passed jobs in match results. Run job_matcher score with ensure_passed "
-                "or lower threshold."
-            )
+def load_scraped_jobs(limit: int | None = None) -> list[dict[str, Any]]:
+    jobs_path = _path("RESUMATCH_JOBS_PATH", DEFAULT_JOBS_PATH)
+    if not jobs_path.exists():
+        raise ValueError("No jobs_latest.json — run job_scraper action scrape first.")
+    raw = json.loads(jobs_path.read_text(encoding="utf-8"))
+    jobs = list(raw.get("jobs") or [])
+    if not jobs:
+        raise ValueError("Scrape returned 0 jobs. Edit profile search query and sync again.")
+    entries = [{"job": job} for job in jobs]
     if limit is not None:
-        passed = passed[:limit]
-    return passed
+        entries = entries[:limit]
+    return entries
+
+
+def load_passed_jobs(limit: int | None = None) -> list[dict[str, Any]]:
+    """Alias for scraped jobs (legacy name used by compose_by_index)."""
+    return load_scraped_jobs(limit=limit)
 
 
 def find_skills_block(tex: str) -> SkillsBlock | None:
@@ -301,7 +301,7 @@ def compose_for_job(
     }
 
 
-def compose_all() -> dict[str, Any]:
+def compose_all(*, max_response_resumes: int = 5) -> dict[str, Any]:
     passed = load_passed_jobs()
     base = load_base_tex()
     results = [compose_for_job(entry, base_tex=base) for entry in passed]
@@ -310,10 +310,21 @@ def compose_all() -> dict[str, Any]:
         json.dumps({"composed_at": datetime.now(UTC).isoformat(), "resumes": results}, indent=2),
         encoding="utf-8",
     )
+    preview = [
+        {
+            "job_title": r.get("job_title"),
+            "company": r.get("company"),
+            "output_path": r.get("output_path"),
+            "matched_skills_used": r.get("matched_skills_used"),
+        }
+        for r in results[: max(0, max_response_resumes)]
+    ]
     return {
         "count": len(results),
-        "resumes": results,
         "manifest_path": str(manifest_path),
+        "resumes_in_response": len(preview),
+        "resumes_preview_only": len(preview) < len(results),
+        "resumes": preview,
     }
 
 
@@ -329,15 +340,22 @@ def _find_tectonic() -> str:
         found = shutil.which(name)
         if found:
             return found
+    candidates: list[Path] = []
     exe = Path(sys.executable)
-    bin_dirs = {exe.parent, exe.resolve().parent}
-    for bin_dir in bin_dirs:
+    for bin_dir in (exe.parent, exe.resolve().parent):
         for name in ("tectonic", "tecto"):
-            candidate = bin_dir / name
-            if candidate.is_file():
-                return str(candidate)
+            candidates.append(bin_dir / name)
+    venv_bin = EXECUTA_DIR / ".venv" / "bin"
+    for name in ("tectonic", "tecto"):
+        candidates.append(venv_bin / name)
+    env_bin = os.environ.get("RESUMATCH_TECTONIC", "").strip()
+    if env_bin:
+        candidates.insert(0, Path(env_bin))
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
     raise ValueError(
-        "PDF engine not found. Run `uv sync` in executas/resume-composer (installs tecto)."
+        "PDF engine not found. In executas/resume-composer run: uv sync (installs tecto)."
     )
 
 
@@ -359,11 +377,24 @@ def _ensure_resume_cls(work_dir: Path, tex: str) -> None:
     raise ValueError("resume.cls missing — reinstall resume-composer executa.")
 
 
+def _write_base_tex() -> Path:
+    """Persist the profile's base resume LaTeX to a file for compilation."""
+    out_dir = _path("RESUMATCH_RESUMES_DIR", DEFAULT_OUTPUT_DIR)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    base_path = out_dir / "resume_base.tex"
+    base_path.write_text(load_base_tex(), encoding="utf-8")
+    return base_path
+
+
 def _resolve_tex_path(
     *,
     job_index: int | None,
     tex_path: str | Path | None,
+    base: bool = False,
 ) -> tuple[Path, dict[str, Any] | None]:
+    if base:
+        return _write_base_tex(), None
+
     if tex_path is not None:
         path = Path(tex_path).expanduser().resolve()
         if not path.is_file():
@@ -388,19 +419,44 @@ def _resolve_tex_path(
     return path, entry
 
 
+def _fix_tex_for_tectonic(tex: str) -> str:
+    """Reorder hyperref for Tectonic/XeTeX — must load after geometry with hidelinks."""
+    if "\\begin{document}" not in tex:
+        return tex
+    if "\\usepackage" not in tex and "\\href" not in tex:
+        return tex
+    stripped = re.sub(
+        r"\\usepackage(?:\[[^\]]*\])?\{hyperref\}\s*\n?",
+        "",
+        tex,
+    )
+    return stripped.replace(
+        "\\begin{document}",
+        "\\usepackage[hidelinks,unicode]{hyperref}\n\\begin{document}",
+        1,
+    )
+
+
 def compile_pdf(
     *,
     job_index: int | None = None,
     tex_path: str | Path | None = None,
+    job_title: str | None = None,
+    company: str | None = None,
+    base: bool = False,
+    to_downloads: bool = True,
 ) -> dict[str, Any]:
-    path, entry = _resolve_tex_path(job_index=job_index, tex_path=tex_path)
-    tex = path.read_text(encoding="utf-8")
+    path, entry = _resolve_tex_path(job_index=job_index, tex_path=tex_path, base=base)
+    tex = _fix_tex_for_tectonic(path.read_text(encoding="utf-8"))
     work_dir = path.parent
     _ensure_resume_cls(work_dir, tex)
 
+    build_path = work_dir / f"{path.stem}_build.tex"
+    build_path.write_text(tex, encoding="utf-8")
+
     tectonic = _find_tectonic()
     proc = subprocess.run(
-        [tectonic, "-X", "compile", path.name],
+        [tectonic, "-X", "compile", build_path.name],
         cwd=work_dir,
         capture_output=True,
         text=True,
@@ -411,14 +467,14 @@ def compile_pdf(
         detail = (proc.stderr or proc.stdout or "tectonic failed").strip()
         raise ValueError(f"PDF compile failed: {detail[-500:]}")
 
-    pdf_src = work_dir / f"{path.stem}.pdf"
+    pdf_src = work_dir / f"{build_path.stem}.pdf"
     if not pdf_src.is_file():
         raise ValueError("PDF compile finished but no .pdf file was produced.")
 
     job = (entry or {}).get("job") or entry or {}
     filename = _pdf_download_name(
-        str(job.get("title") or path.stem),
-        str(job.get("company") or ""),
+        str(job_title or job.get("title") or path.stem),
+        str(company or job.get("company") or ""),
     )
 
     pdf_dir = _path("RESUMATCH_PDF_DIR", DEFAULT_PDF_DIR)
@@ -426,11 +482,23 @@ def compile_pdf(
     pdf_dest = pdf_dir / filename
     shutil.copy2(pdf_src, pdf_dest)
 
+    downloads_path: str | None = None
+    if to_downloads:
+        downloads_dir = _path("RESUMATCH_DOWNLOADS_DIR", DEFAULT_DOWNLOADS_DIR)
+        try:
+            downloads_dir.mkdir(parents=True, exist_ok=True)
+            downloads_dest = downloads_dir / filename
+            shutil.copy2(pdf_src, downloads_dest)
+            downloads_path = str(downloads_dest)
+        except OSError:
+            downloads_path = None
+
     payload = pdf_dest.read_bytes()
     return {
         "job_index": job_index,
         "tex_path": str(path),
         "pdf_path": str(pdf_dest),
+        "downloads_path": downloads_path,
         "pdf_filename": filename,
         "pdf_base64": base64.b64encode(payload).decode("ascii"),
         "size_bytes": len(payload),

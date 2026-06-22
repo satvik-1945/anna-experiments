@@ -1,0 +1,244 @@
+{
+  "domains": {
+    "software_engineering": "Software Engineering",
+    "ai_ml": "AI / Machine Learning",
+    "data_engineering": "Data Engineering",
+    "data_science": "Data Science",
+    "devops_sre": "DevOps / SRE",
+    "cloud": "Cloud Engineering",
+    "security": "Cybersecurity",
+    "mobile": "Mobile Development",
+    "frontend": "Frontend Engineering",
+    "backend": "Backend Engineering",
+    "fullstack": "Full Stack Engineering",
+    "product": "Product Management",
+    "qa": "QA / Test Engineering",
+    "other": "Other"
+  },
+  "roles": [
+    {
+      "id": "python_developer",
+      "label": "Python Developer",
+      "domain": "software_engineering",
+      "search_term": "Python developer",
+      "skills": ["python", "fastapi", "django", "flask", "docker", "aws", "postgresql"]
+    },
+    {
+      "id": "sde",
+      "label": "Software Development Engineer (SDE)",
+      "domain": "software_engineering",
+      "search_term": "software development engineer",
+      "skills": ["python", "java", "javascript", "data structures", "algorithms", "git"]
+    },
+    {
+      "id": "software_engineer",
+      "label": "Software Engineer",
+      "domain": "software_engineering",
+      "search_term": "software engineer",
+      "skills": ["python", "java", "javascript", "git", "docker", "sql"]
+    },
+    {
+      "id": "backend_engineer",
+      "label": "Backend Engineer",
+      "domain": "backend",
+      "search_term": "backend engineer",
+      "skills": ["python", "java", "fastapi", "postgresql", "redis", "docker", "aws"]
+    },
+    {
+      "id": "frontend_engineer",
+      "label": "Frontend Engineer",
+      "domain": "frontend",
+      "search_term": "frontend engineer",
+      "skills": ["javascript", "typescript", "react", "html", "css", "git"]
+    },
+    {
+      "id": "fullstack_engineer",
+      "label": "Full Stack Engineer",
+      "domain": "fullstack",
+      "search_term": "full stack engineer",
+      "skills": ["javascript", "python", "react", "node", "postgresql", "docker"]
+    },
+    {
+      "id": "ai_engineer",
+      "label": "AI Engineer",
+      "domain": "ai_ml",
+      "search_term": "AI engineer",
+      "skills": ["python", "llm", "rag", "openai", "pytorch", "fastapi", "docker"]
+    },
+    {
+      "id": "aiml_engineer",
+      "label": "AI/ML Engineer",
+      "domain": "ai_ml",
+      "search_term": "AI ML engineer",
+      "skills": ["python", "machine learning", "pytorch", "tensorflow", "scikit-learn", "aws"]
+    },
+    {
+      "id": "ml_engineer",
+      "label": "Machine Learning Engineer (MLE)",
+      "domain": "ai_ml",
+      "search_term": "machine learning engineer",
+      "skills": ["python", "pytorch", "mlops", "docker", "kubernetes", "aws sagemaker"]
+    },
+    {
+      "id": "data_scientist",
+      "label": "Data Scientist",
+      "domain": "data_science",
+      "search_term": "data scientist",
+      "skills": ["python", "pandas", "numpy", "sql", "machine learning", "statistics"]
+    },
+    {
+      "id": "data_engineer",
+      "label": "Data Engineer",
+      "domain": "data_engineering",
+      "search_term": "data engineer",
+      "skills": ["python", "sql", "spark", "airflow", "aws", "etl"]
+    },
+    {
+      "id": "data_analyst",
+      "label": "Data Analyst",
+      "domain": "data_science",
+      "search_term": "data analyst",
+      "skills": ["sql", "python", "excel", "tableau", "power bi"]
+    },
+    {
+      "id": "devops_engineer",
+      "label": "DevOps Engineer",
+      "domain": "devops_sre",
+      "search_term": "devops engineer",
+      "skills": ["docker", "kubernetes", "aws", "terraform", "linux", "ci/cd"]
+    },
+    {
+      "id": "sre",
+      "label": "Site Reliability Engineer (SRE)",
+      "domain": "devops_sre",
+      "search_term": "site reliability engineer",
+      "skills": ["kubernetes", "linux", "python", "monitoring", "aws", "terraform"]
+    },
+    {
+      "id": "cloud_engineer",
+      "label": "Cloud Engineer",
+      "domain": "cloud",
+      "search_term": "cloud engineer",
+      "skills": ["aws", "azure", "gcp", "terraform", "kubernetes", "linux"]
+    },
+    {
+      "id": "platform_engineer",
+      "label": "Platform Engineer",
+      "domain": "devops_sre",
+      "search_term": "platform engineer",
+      "skills": ["kubernetes", "docker", "python", "terraform", "aws"]
+    },
+    {
+      "id": "java_developer",
+      "label": "Java Developer",
+      "domain": "software_engineering",
+      "search_term": "Java developer",
+      "skills": ["java", "spring boot", "sql", "docker", "microservices"]
+    },
+    {
+      "id": "golang_developer",
+      "label": "Golang Developer",
+      "domain": "backend",
+      "search_term": "Golang developer",
+      "skills": ["go", "kubernetes", "docker", "postgresql", "grpc"]
+    },
+    {
+      "id": "nodejs_developer",
+      "label": "Node.js Developer",
+      "domain": "backend",
+      "search_term": "Node.js developer",
+      "skills": ["node", "javascript", "typescript", "mongodb", "aws"]
+    },
+    {
+      "id": "react_developer",
+      "label": "React Developer",
+      "domain": "frontend",
+      "search_term": "React developer",
+      "skills": ["react", "javascript", "typescript", "html", "css"]
+    },
+    {
+      "id": "android_developer",
+      "label": "Android Developer",
+      "domain": "mobile",
+      "search_term": "Android developer",
+      "skills": ["kotlin", "java", "android", "git"]
+    },
+    {
+      "id": "ios_developer",
+      "label": "iOS Developer",
+      "domain": "mobile",
+      "search_term": "iOS developer",
+      "skills": ["swift", "ios", "xcode", "git"]
+    },
+    {
+      "id": "nlp_engineer",
+      "label": "NLP Engineer",
+      "domain": "ai_ml",
+      "search_term": "NLP engineer",
+      "skills": ["python", "nlp", "pytorch", "huggingface", "llm"]
+    },
+    {
+      "id": "computer_vision",
+      "label": "Computer Vision Engineer",
+      "domain": "ai_ml",
+      "search_term": "computer vision engineer",
+      "skills": ["python", "opencv", "pytorch", "tensorflow", "deep learning"]
+    },
+    {
+      "id": "llm_engineer",
+      "label": "LLM Engineer",
+      "domain": "ai_ml",
+      "search_term": "LLM engineer",
+      "skills": ["python", "llm", "rag", "langchain", "openai", "vector database"]
+    },
+    {
+      "id": "genai_engineer",
+      "label": "Generative AI Engineer",
+      "domain": "ai_ml",
+      "search_term": "generative AI engineer",
+      "skills": ["python", "llm", "pytorch", "rag", "fastapi", "docker"]
+    },
+    {
+      "id": "mlops_engineer",
+      "label": "MLOps Engineer",
+      "domain": "ai_ml",
+      "search_term": "MLOps engineer",
+      "skills": ["python", "mlops", "docker", "kubernetes", "aws sagemaker", "ci/cd"]
+    },
+    {
+      "id": "security_engineer",
+      "label": "Security Engineer",
+      "domain": "security",
+      "search_term": "security engineer",
+      "skills": ["python", "linux", "networking", "aws", "siem"]
+    },
+    {
+      "id": "qa_engineer",
+      "label": "QA Engineer / SDET",
+      "domain": "qa",
+      "search_term": "QA automation engineer",
+      "skills": ["selenium", "python", "java", "test automation", "api testing"]
+    },
+    {
+      "id": "product_manager",
+      "label": "Product Manager (Technical)",
+      "domain": "product",
+      "search_term": "technical product manager",
+      "skills": ["product management", "agile", "sql", "analytics"]
+    },
+    {
+      "id": "embedded_engineer",
+      "label": "Embedded Software Engineer",
+      "domain": "software_engineering",
+      "search_term": "embedded software engineer",
+      "skills": ["c", "c++", "embedded", "linux", "rtos"]
+    },
+    {
+      "id": "blockchain_developer",
+      "label": "Blockchain Developer",
+      "domain": "software_engineering",
+      "search_term": "blockchain developer",
+      "skills": ["solidity", "javascript", "web3", "ethereum"]
+    }
+  ]
+}

@@ -38,7 +38,7 @@ MANIFEST = {
                 {
                     "name": "action",
                     "type": "string",
-                    "description": "One of: scrape, summary",
+                    "description": "One of: scrape, refilter, cache_status, summary",
                     "required": True,
                 },
                 {
@@ -68,13 +68,19 @@ MANIFEST = {
                 {
                     "name": "hours_old",
                     "type": "integer",
-                    "description": "Only jobs posted within this many hours (default 24)",
+                    "description": "Only jobs posted within this many hours (default 168 = 7 days)",
+                    "required": False,
+                },
+                {
+                    "name": "seniority_filter",
+                    "type": "string",
+                    "description": "Filter scraped jobs by level: any, intern, junior, mid, senior",
                     "required": False,
                 },
                 {
                     "name": "results_wanted",
                     "type": "integer",
-                    "description": "Maximum jobs to fetch (default 200)",
+                    "description": "Maximum jobs to fetch from Indeed/Google (default 500)",
                     "required": False,
                 },
                 {
@@ -98,7 +104,7 @@ MANIFEST = {
                 {
                     "name": "persist",
                     "type": "boolean",
-                    "description": "Save full scrape to ~/.anna/resumatch/jobs_latest.json for job_matcher (default true)",
+                    "description": "Save full scrape to ~/.anna/resumatch/jobs_latest.json (default true)",
                     "required": False,
                 },
                 {
@@ -119,6 +125,103 @@ MANIFEST = {
 }
 
 _LAST_SCRAPE: dict[str, Any] | None = None
+
+
+def _jobs_dir() -> Path:
+    return Path.home() / ".anna" / "resumatch"
+
+
+def _cache_path() -> Path:
+    env = os.environ.get("RESUMATCH_JOBS_CACHE_PATH", "").strip()
+    return Path(env) if env else _jobs_dir() / "jobs_cache.json"
+
+
+def _latest_path() -> Path:
+    env = os.environ.get("RESUMATCH_JOBS_PATH", "").strip()
+    return Path(env) if env else _jobs_dir() / "jobs_latest.json"
+
+
+def _persist_scrape(full: dict[str, Any]) -> dict[str, str]:
+    latest_path = _latest_path()
+    cache_path = _cache_path()
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    cache_payload = dict(full)
+    cache_payload["jobs"] = full.get("jobs_all") or full.get("jobs") or []
+    cache_payload.pop("jobs_all", None)
+    cache_path.write_text(json.dumps(cache_payload, indent=2), encoding="utf-8")
+
+    latest_payload = dict(full)
+    latest_payload.pop("jobs_all", None)
+    latest_path.write_text(json.dumps(latest_payload, indent=2), encoding="utf-8")
+
+    return {
+        "jobs_saved_to": str(latest_path),
+        "jobs_cache_saved_to": str(cache_path),
+    }
+
+
+def refilter_jobs_action(args: dict[str, Any]) -> dict[str, Any]:
+    global _LAST_SCRAPE
+
+    cache_path = _cache_path()
+    if not cache_path.exists():
+        raise ValueError("No job cache yet. Click Fetch jobs first (one-time scrape).")
+
+    from scraper_core import refilter_cached_jobs
+
+    cache = json.loads(cache_path.read_text(encoding="utf-8"))
+    seniority = str(args.get("seniority_filter", "any")).strip().lower()
+    full = refilter_cached_jobs(cache, seniority)
+    latest_path = _latest_path()
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_payload = dict(full)
+    latest_payload.pop("jobs_all", None)
+    latest_path.write_text(json.dumps(latest_payload, indent=2), encoding="utf-8")
+
+    _LAST_SCRAPE = full
+
+    max_chars = int(args.get("description_max_chars", 400))
+    max_response_jobs = int(args.get("max_response_jobs", 10))
+    response = dict(full)
+    response.pop("jobs_all", None)
+    response["jobs"] = _truncate_jobs(full["jobs"], max_chars)[:max_response_jobs]
+    response["jobs_in_response"] = len(response["jobs"])
+    response["jobs_preview_only"] = response["jobs_in_response"] < full["count"]
+    response["from_cache"] = True
+    response["jobs_saved_to"] = str(latest_path)
+    response["jobs_cache_saved_to"] = str(cache_path)
+    return response
+
+
+def cache_status_action() -> dict[str, Any]:
+    cache_path = _cache_path()
+    latest_path = _latest_path()
+    out: dict[str, Any] = {
+        "cache_exists": cache_path.exists(),
+        "latest_exists": latest_path.exists(),
+        "cache_path": str(cache_path),
+        "latest_path": str(latest_path),
+    }
+    if cache_path.exists():
+        try:
+            cache = json.loads(cache_path.read_text(encoding="utf-8"))
+            out["cached_count"] = len(cache.get("jobs") or [])
+            out["fetched_at"] = cache.get("fetched_at")
+            out["search_term"] = cache.get("search_term")
+            out["hours_old"] = cache.get("hours_old")
+        except (json.JSONDecodeError, OSError):
+            out["cache_error"] = "Could not read jobs_cache.json"
+    if latest_path.exists():
+        try:
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+            out["filtered_count"] = latest.get("count")
+            out["count_before_seniority_filter"] = latest.get("count_before_seniority_filter")
+            out["seniority_filter"] = latest.get("seniority_filter")
+            out["refiltered_at"] = latest.get("refiltered_at")
+        except (json.JSONDecodeError, OSError):
+            out["latest_error"] = "Could not read jobs_latest.json"
+    return out
 
 
 def _log(msg: str) -> None:
@@ -264,6 +367,7 @@ def scrape_jobs_action(
     global _LAST_SCRAPE
 
     args = _merge_profile_args(args)
+    seniority_filter = str(args.get("seniority_filter") or "any").strip().lower()
 
     scrape_notes: list[str] = []
     if os.environ.get("RESUMATCH_SMOKE_MOCK") == "1":
@@ -271,30 +375,46 @@ def scrape_jobs_action(
     else:
         from scraper_core import ScrapeConfig, run_scrape
 
+        def _do_scrape(cfg: ScrapeConfig) -> dict[str, Any]:
+            return run_scrape(cfg, seniority_filter=seniority_filter)
+
         config = ScrapeConfig(
             mode=str(args.get("mode", "free")),
             search_term=str(args.get("search_term", "software engineer")),
             location=str(args.get("location", "India")),
-            hours_old=int(args.get("hours_old", 24)),
-            results_wanted=int(args.get("results_wanted", 200)),
+            hours_old=int(args.get("hours_old", 168)),
+            results_wanted=int(args.get("results_wanted", 500)),
             country_indeed=str(args.get("country_indeed", "India")),
-            include_free_apis=bool(args.get("include_free_apis", False)),
+            include_free_apis=bool(args.get("include_free_apis", True)),
             proxies=_resolve_proxies(args, credentials),
         )
-        full = run_scrape(config)
-        if full["count"] == 0 and config.hours_old < 72:
+        full = _do_scrape(config)
+        if full["count"] == 0 and config.hours_old < 168:
             config = ScrapeConfig(
                 mode=config.mode,
                 search_term=config.search_term,
                 location=config.location,
-                hours_old=72,
+                hours_old=168,
                 results_wanted=config.results_wanted,
                 country_indeed=config.country_indeed,
                 include_free_apis=config.include_free_apis,
                 proxies=config.proxies,
             )
-            full = run_scrape(config)
-            scrape_notes.append("retried hours_old=72")
+            full = _do_scrape(config)
+            scrape_notes.append("retried hours_old=168")
+        if full["count"] == 0 and config.hours_old < 336:
+            config = ScrapeConfig(
+                mode=config.mode,
+                search_term=config.search_term,
+                location=config.location,
+                hours_old=336,
+                results_wanted=config.results_wanted,
+                country_indeed=config.country_indeed,
+                include_free_apis=config.include_free_apis,
+                proxies=config.proxies,
+            )
+            full = _do_scrape(config)
+            scrape_notes.append("retried hours_old=336")
         if full["count"] == 0:
             words = config.search_term.split()
             if len(words) > 2:
@@ -303,13 +423,13 @@ def scrape_jobs_action(
                     mode=config.mode,
                     search_term=short,
                     location=config.location,
-                    hours_old=max(config.hours_old, 72),
+                    hours_old=max(config.hours_old, 168),
                     results_wanted=config.results_wanted,
                     country_indeed=config.country_indeed,
                     include_free_apis=config.include_free_apis,
                     proxies=config.proxies,
                 )
-                full = run_scrape(config)
+                full = _do_scrape(config)
                 scrape_notes.append(f"retried query={short!r}")
 
     _LAST_SCRAPE = full
@@ -317,12 +437,7 @@ def scrape_jobs_action(
     response_extra: dict[str, str] = {}
     persist = args.get("persist", True)
     if persist is not False:
-        default_jobs = Path.home() / ".anna" / "resumatch" / "jobs_latest.json"
-        env_jobs = os.environ.get("RESUMATCH_JOBS_PATH", "").strip()
-        jobs_path = Path(env_jobs) if env_jobs else default_jobs
-        jobs_path.parent.mkdir(parents=True, exist_ok=True)
-        jobs_path.write_text(json.dumps(full, indent=2), encoding="utf-8")
-        response_extra["jobs_saved_to"] = str(jobs_path)
+        response_extra.update(_persist_scrape(full))
 
     output_path = args.get("output_path")
     if output_path:
@@ -334,6 +449,7 @@ def scrape_jobs_action(
     max_chars = int(args.get("description_max_chars", 400))
     max_response_jobs = int(args.get("max_response_jobs", 10))
     response = dict(full)
+    response.pop("jobs_all", None)
     preview_source = _truncate_jobs(full["jobs"], max_chars)
     response["jobs"] = preview_source[:max_response_jobs]
     response["jobs_in_response"] = len(response["jobs"])
@@ -393,6 +509,10 @@ def invoke(
     action = str(args.get("action", "")).strip().lower()
     if action == "scrape":
         return {"success": True, "data": scrape_jobs_action(args, credentials)}
+    if action == "refilter":
+        return {"success": True, "data": refilter_jobs_action(args)}
+    if action == "cache_status":
+        return {"success": True, "data": cache_status_action()}
     if action == "summary":
         return {"success": True, "data": summary_action()}
     raise ValueError(f"unknown action: {action}")

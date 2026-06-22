@@ -29,7 +29,7 @@ MANIFEST = {
         {
             "name": "resume_composer",
             "description": "Generate job-specific .tex files by tailoring the Skills section.",
-            "timeout": 180,
+            "timeout": 600,
             "parameters": [
                 {
                     "name": "action",
@@ -40,13 +40,37 @@ MANIFEST = {
                 {
                     "name": "job_index",
                     "type": "integer",
-                    "description": "Index into passed jobs from match_results (for compose / compile_pdf)",
+                    "description": "Index into scraped jobs from jobs_latest.json (for compose / compile_pdf)",
                     "required": False,
                 },
                 {
                     "name": "tex_path",
                     "type": "string",
                     "description": "Optional path to a .tex file (for compile_pdf)",
+                    "required": False,
+                },
+                {
+                    "name": "job_title",
+                    "type": "string",
+                    "description": "Optional job title for PDF filename (compile_pdf)",
+                    "required": False,
+                },
+                {
+                    "name": "company",
+                    "type": "string",
+                    "description": "Optional company for PDF filename (compile_pdf)",
+                    "required": False,
+                },
+                {
+                    "name": "base",
+                    "type": "boolean",
+                    "description": "Compile the untailored base resume from profile (compile_pdf)",
+                    "required": False,
+                },
+                {
+                    "name": "to_downloads",
+                    "type": "boolean",
+                    "description": "Also copy the compiled PDF to ~/Downloads (default true)",
                     "required": False,
                 },
             ],
@@ -69,17 +93,23 @@ def invoke(tool: str, args: dict[str, Any]) -> dict[str, Any]:
         return {"success": True, "data": result}
 
     if action == "compose_all":
-        result = compose_all()
+        max_resumes = int(args.get("max_response_resumes", 5))
+        result = compose_all(max_response_resumes=max_resumes)
         return {"success": True, "data": result}
 
     if action == "compile_pdf":
         index = args.get("job_index")
         tex_path = args.get("tex_path")
-        if index is None and not tex_path:
-            raise ValueError("compile_pdf requires job_index or tex_path")
+        base = bool(args.get("base", False))
+        if index is None and not tex_path and not base:
+            raise ValueError("compile_pdf requires job_index, tex_path, or base=true")
         result = compile_pdf(
             job_index=int(index) if index is not None else None,
             tex_path=str(tex_path) if tex_path else None,
+            base=base,
+            to_downloads=bool(args.get("to_downloads", True)),
+            job_title=str(args.get("job_title")) if args.get("job_title") else None,
+            company=str(args.get("company")) if args.get("company") else None,
         )
         return {"success": True, "data": result}
 

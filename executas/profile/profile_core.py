@@ -299,8 +299,13 @@ def normalize_search_query(query: str, max_words: int = 4) -> str:
 
 
 def profile_is_complete(profile: UserProfile) -> bool:
-    """User must explicitly set job search keywords (not auto-derived)."""
-    return bool(profile.search_term.strip())
+    """Profile must have name, search query, resume, and target skills."""
+    return bool(
+        profile.name.strip()
+        and profile.search_term.strip()
+        and profile.resume_tex.strip()
+        and (profile.target_skills or profile.skills)
+    )
 
 
 def profile_for_scraper() -> dict[str, Any]:

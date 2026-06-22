@@ -4,7 +4,6 @@
   "required_executas": [
     { "tool_id": "tool-tejasstvk8-resumatch-profile-ae86dv2d" },
     { "tool_id": "tool-tejasstvk8-job-scraper-7yj4tbf2" },
-    { "tool_id": "tool-tejasstvk8-job-matcher-uw9mk2et" },
     { "tool_id": "tool-tejasstvk8-resume-composer-yf9kf9ja" },
     { "tool_id": "tool-tejasstvk8-application-pack-ys4xy6db" }
   ],

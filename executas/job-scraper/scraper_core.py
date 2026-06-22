@@ -11,6 +11,8 @@ from typing import Any
 import requests
 from jobspy import scrape_jobs
 
+from scraper_filters import filter_jobs_by_seniority
+
 
 @dataclass
 class JobRecord:
@@ -32,9 +34,9 @@ class ScrapeConfig:
     search_term: str = "software engineer"
     location: str = "India"
     hours_old: int = 24
-    results_wanted: int = 200
+    results_wanted: int = 500
     country_indeed: str = "India"
-    include_free_apis: bool = False
+    include_free_apis: bool = True
     proxies: list[str] = field(default_factory=list)
 
 
@@ -271,7 +273,7 @@ def parse_proxy_list(raw: str | None) -> list[str]:
     return [part.strip() for part in raw.split(",") if part.strip()]
 
 
-def run_scrape(config: ScrapeConfig) -> dict[str, Any]:
+def run_scrape(config: ScrapeConfig, *, seniority_filter: str | None = None) -> dict[str, Any]:
     mode = (config.mode or "free").lower()
     if mode not in {"free", "boost"}:
         raise ValueError("mode must be 'free' or 'boost'")
@@ -282,6 +284,14 @@ def run_scrape(config: ScrapeConfig) -> dict[str, Any]:
 
     include_linkedin = mode == "boost"
     jobs: list[JobRecord] = []
+    api_errors: list[str] = []
+
+    if config.include_free_apis:
+        for fn in (fetch_remotive_jobs, fetch_remoteok_jobs, fetch_arbeitnow_jobs):
+            try:
+                jobs.extend(fn(config.search_term, config.hours_old))
+            except requests.RequestException as exc:
+                api_errors.append(f"{fn.__name__}: {exc}")
 
     jobs.extend(
         fetch_jobspy_jobs(
@@ -295,17 +305,11 @@ def run_scrape(config: ScrapeConfig) -> dict[str, Any]:
         )
     )
 
-    api_errors: list[str] = []
-    if config.include_free_apis:
-        for fn in (fetch_remotive_jobs, fetch_remoteok_jobs, fetch_arbeitnow_jobs):
-            try:
-                jobs.extend(fn(config.search_term, config.hours_old))
-            except requests.RequestException as exc:
-                api_errors.append(f"{fn.__name__}: {exc}")
-
     deduped = dedupe_jobs(jobs)
+    before_filter = len(deduped)
+    filtered = filter_jobs_by_seniority(deduped, seniority_filter)
     by_source: dict[str, int] = {}
-    for job in deduped:
+    for job in filtered:
         by_source[job.source] = by_source.get(job.source, 0) + 1
 
     return {
@@ -313,16 +317,57 @@ def run_scrape(config: ScrapeConfig) -> dict[str, Any]:
         "search_term": config.search_term,
         "location": config.location,
         "hours_old": config.hours_old,
-        "count": len(deduped),
+        "seniority_filter": seniority_filter or "any",
+        "count_before_seniority_filter": before_filter,
+        "count": len(filtered),
         "by_source": by_source,
         "apply_url_coverage": round(
-            100 * sum(1 for j in deduped if j.apply_url) / len(deduped),
+            100 * sum(1 for j in filtered if j.apply_url) / len(filtered),
             1,
         )
-        if deduped
+        if filtered
         else 0.0,
         "api_errors": api_errors,
         "linkedin_included": include_linkedin,
         "fetched_at": _now_iso(),
-        "jobs": [asdict(job) for job in deduped],
+        "jobs_all": [asdict(job) for job in deduped],
+        "jobs": [asdict(job) for job in filtered],
     }
+
+
+def jobs_from_dicts(items: list[dict[str, Any]]) -> list[JobRecord]:
+    return [
+        JobRecord(
+            source=str(j.get("source", "")),
+            source_type=str(j.get("source_type", "board")),
+            title=str(j.get("title", "")),
+            company=str(j.get("company", "")),
+            location=str(j.get("location", "")),
+            published_at=str(j.get("published_at", "")),
+            apply_url=str(j.get("apply_url", "")),
+            description=str(j.get("description", "")),
+            tags=list(j.get("tags") or []),
+            fetched_at=str(j.get("fetched_at", "")),
+        )
+        for j in items
+    ]
+
+
+def refilter_cached_jobs(
+    cache_payload: dict[str, Any],
+    seniority_filter: str | None,
+) -> dict[str, Any]:
+    raw_jobs = cache_payload.get("jobs") or cache_payload.get("jobs_all") or []
+    records = jobs_from_dicts(raw_jobs)
+    filtered = filter_jobs_by_seniority(records, seniority_filter)
+    by_source: dict[str, int] = {}
+    for job in filtered:
+        by_source[job.source] = by_source.get(job.source, 0) + 1
+    out = dict(cache_payload)
+    out["seniority_filter"] = seniority_filter or "any"
+    out["count_before_seniority_filter"] = len(records)
+    out["count"] = len(filtered)
+    out["by_source"] = by_source
+    out["jobs"] = [asdict(job) for job in filtered]
+    out["refiltered_at"] = _now_iso()
+    return out

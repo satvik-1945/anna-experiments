@@ -5,76 +5,113 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ResuMatch</title>
     <link rel="stylesheet" href="./style.css" />
-    <script src="./app.js?v=7" type="module"></script>
+    <script src="./app.js?v=17" type="module"></script>
   </head>
   <body>
     <div id="app" class="app-shell hidden">
       <aside class="sidebar">
         <div class="brand">
-          <span class="brand-icon">🚀</span>
+          <span class="brand-icon">🎯</span>
           <span class="brand-name">ResuMatch</span>
         </div>
         <nav class="nav">
-          <button type="button" class="nav-item active" data-view="dashboard">Dashboard</button>
-          <button type="button" class="nav-item" data-view="jobs">Job Listings</button>
-          <button type="button" class="nav-item" data-view="profile">Profile</button>
+          <button type="button" class="nav-item active" data-view="dashboard">
+            <span class="nav-ico">▦</span> Dashboard
+          </button>
+          <button type="button" class="nav-item" data-view="jobs">
+            <span class="nav-ico">≣</span> Job Listings
+          </button>
+          <button type="button" class="nav-item" data-nav="profile">
+            <span class="nav-ico">◍</span> Profile
+          </button>
+          <button type="button" class="nav-item" data-view="resume">
+            <span class="nav-ico">▤</span> Resume
+          </button>
+          <button type="button" class="nav-item" data-view="settings">
+            <span class="nav-ico">⚙</span> Settings
+          </button>
         </nav>
-        <div class="sidebar-foot">Manual apply · Anna Hackathon</div>
       </aside>
 
       <main class="main">
         <header class="topbar">
-          <div>
+          <div class="topbar-title">
             <h1 id="page-title">Dashboard</h1>
-            <p id="page-subtitle" class="page-subtitle">Job search automation overview</p>
+            <p id="page-subtitle" class="page-subtitle">Job automation overview</p>
           </div>
           <div class="topbar-actions">
-            <input id="job-filter" class="search-input" type="search" placeholder="Search jobs, companies…" />
-            <button id="btn-refresh" class="btn primary">Sync jobs</button>
-            <div id="user-chip" class="avatar hidden">ST</div>
+            <div class="search-box">
+              <span class="search-ico">⌕</span>
+              <input id="job-filter" class="search-input" type="search" placeholder="Search jobs, companies…" />
+            </div>
+            <button type="button" id="user-menu-btn" class="user-menu-btn" aria-haspopup="dialog">
+              <span id="user-avatar" class="avatar">ST</span>
+              <span id="user-menu-name" class="user-menu-name">Profile</span>
+            </button>
           </div>
         </header>
 
+        <div id="profile-required-banner" class="profile-banner hidden">
+          <strong>Complete your profile</strong> before fetching jobs —
+          <button type="button" class="link-btn" id="btn-open-profile-banner">Edit profile</button>
+        </div>
+
         <p id="pipeline-status" class="pipeline-status"></p>
 
-        <!-- Dashboard view -->
+        <!-- DASHBOARD -->
         <section id="view-dashboard" class="view">
           <div class="kpi-grid">
             <article class="kpi-card">
-              <div class="kpi-icon blue">📋</div>
-              <div>
-                <div class="kpi-value" id="kpi-matched">0</div>
-                <div class="kpi-label">Matched jobs</div>
-                <div class="kpi-trend" id="kpi-matched-sub">Run Sync jobs</div>
+              <div class="kpi-row">
+                <div class="kpi-icon blue">✈️</div>
+                <div class="kpi-trend up" id="kpi-applications-trend">&nbsp;</div>
               </div>
+              <div class="kpi-value" id="kpi-applications">0</div>
+              <div class="kpi-label">Total Applications</div>
             </article>
             <article class="kpi-card">
-              <div class="kpi-icon green">✈️</div>
-              <div>
-                <div class="kpi-value" id="kpi-applied">0</div>
-                <div class="kpi-label">Marked applied</div>
-                <div class="kpi-trend">You click Submit</div>
+              <div class="kpi-row">
+                <div class="kpi-icon green">📅</div>
+                <div class="kpi-trend up" id="kpi-interviews-trend">&nbsp;</div>
               </div>
+              <div class="kpi-value" id="kpi-interviews">0</div>
+              <div class="kpi-label">Interviews Scheduled</div>
             </article>
             <article class="kpi-card">
-              <div class="kpi-icon orange">🎯</div>
-              <div>
-                <div class="kpi-value" id="kpi-avg-score">—</div>
-                <div class="kpi-label">Avg match score</div>
-                <div class="kpi-trend" id="kpi-score-sub">Target ≥ 80%</div>
+              <div class="kpi-row">
+                <div class="kpi-icon orange">🏆</div>
+                <div class="kpi-trend up" id="kpi-offers-trend">&nbsp;</div>
               </div>
+              <div class="kpi-value" id="kpi-offers">0</div>
+              <div class="kpi-label">Offers Received</div>
             </article>
             <article class="kpi-card">
-              <div class="kpi-icon purple">📄</div>
-              <div>
-                <div class="kpi-value" id="kpi-resumes">0</div>
-                <div class="kpi-label">Tailored resumes</div>
-                <div class="kpi-trend">Skills section only</div>
+              <div class="kpi-row">
+                <div class="kpi-icon purple">📄</div>
+                <div class="kpi-trend up" id="kpi-ready-trend">&nbsp;</div>
               </div>
+              <div class="kpi-value" id="kpi-ready">0</div>
+              <div class="kpi-label">Jobs Ready</div>
             </article>
           </div>
 
+          <article class="panel-card table-card">
+            <div class="panel-head">
+              <h2>Recent Applications</h2>
+              <button type="button" class="link-btn" id="btn-view-all-jobs">View all</button>
+            </div>
+            <div id="dash-table-wrap"></div>
+            <p id="dash-empty" class="hint dash-empty">No jobs yet. Go to <strong>Settings</strong> → <strong>Fetch jobs</strong> to pull today's roles.</p>
+          </article>
+
           <div class="dash-grid">
+            <article class="panel-card">
+              <h2>Your profile</h2>
+              <div id="profile-summary" class="profile-summary">
+                <p class="hint">Click your name (top right) to set up your profile.</p>
+              </div>
+              <button type="button" class="btn ghost small" id="btn-edit-profile-dash">Edit profile</button>
+            </article>
             <article class="panel-card">
               <h2>Research sources</h2>
               <ul id="source-list" class="source-list"></ul>
@@ -86,64 +123,230 @@
           </div>
         </section>
 
-        <!-- Jobs view -->
+        <!-- JOB LISTINGS -->
         <section id="view-jobs" class="view hidden">
-          <div id="empty-state" class="empty-state">
-            <p>No jobs yet.</p>
-            <p class="hint">Go to <strong>Dashboard</strong> and click <strong>Sync jobs</strong> to scrape Indeed, match, and build apply packs.</p>
+          <div class="listing-toolbar">
+            <div class="status-tabs" id="status-tabs">
+              <button type="button" class="status-tab active" data-status="all">All</button>
+              <button type="button" class="status-tab" data-status="applied">Applied</button>
+              <button type="button" class="status-tab" data-status="interview">Interview</button>
+              <button type="button" class="status-tab" data-status="offer">Offer</button>
+              <button type="button" class="status-tab" data-status="rejected">Rejected</button>
+              <button type="button" class="status-tab" data-status="saved">Saved</button>
+            </div>
+            <span id="jobs-meta" class="jobs-meta"></span>
           </div>
-          <div id="jobs-wrap" class="hidden">
-            <p id="jobs-meta" class="jobs-meta"></p>
-            <div id="jobs-list" class="jobs-list"></div>
+          <div class="refine-bar">
+            <label class="toolbar-field">
+              Seniority
+              <select id="list-seniority" aria-label="Filter by seniority">
+                <option value="all" selected>All levels</option>
+                <option value="intern">Intern</option>
+                <option value="junior">Junior / entry</option>
+                <option value="mid">Mid-level</option>
+                <option value="senior">Senior / lead</option>
+              </select>
+            </label>
+            <label class="toolbar-field">
+              Posted within
+              <select id="list-hours" aria-label="Filter by date posted">
+                <option value="0" selected>Any time (all fetched)</option>
+                <option value="24">Last 24 hours</option>
+                <option value="48">Last 48 hours</option>
+                <option value="72">Last 3 days</option>
+                <option value="168">Last 7 days</option>
+                <option value="336">Last 14 days</option>
+              </select>
+            </label>
+            <span class="refine-hint">Refine the jobs you already fetched — no re-scraping.</span>
           </div>
+          <article class="panel-card table-card">
+            <div id="jobs-table-wrap"></div>
+            <div id="empty-state" class="empty-state">
+              <p>No jobs match your filters.</p>
+              <p class="hint">Widen the <strong>Seniority</strong> / <strong>Posted within</strong> filters above, or go to <strong>Settings</strong> → <strong>Fetch jobs</strong> to pull fresh roles.</p>
+            </div>
+          </article>
         </section>
 
-        <!-- Profile view -->
-        <section id="view-profile" class="view hidden">
-          <article class="panel-card profile-panel">
-            <h2 id="onboard-title">Your job search profile</h2>
-            <p id="onboard-lead" class="hint">Set job titles and skills before syncing. We scrape Indeed using your query — keep it short (e.g. Python developer).</p>
-            <form id="onboard-form">
-              <div class="form-grid">
-                <label>Your name<input id="input-name" name="name" required placeholder="Satvik Tejas" /></label>
-                <label>Location<input id="input-location" name="location" value="India" /></label>
+        <!-- RESUME -->
+        <section id="view-resume" class="view hidden">
+          <article class="panel-card">
+            <h2>Your base resume</h2>
+            <p class="hint">This is the Overleaf LaTeX resume from your profile. Per-job tailoring only changes the Skills section.</p>
+            <div id="resume-summary" class="resume-summary-box"></div>
+            <div class="resume-actions">
+              <button type="button" class="btn primary" id="btn-preview-base">Preview base resume PDF</button>
+              <button type="button" class="btn ghost" id="btn-edit-resume">Edit resume in profile</button>
+            </div>
+            <p id="resume-error" class="error hidden"></p>
+          </article>
+        </section>
+
+        <!-- SETTINGS -->
+        <section id="view-settings" class="view hidden">
+          <article class="panel-card fetch-card">
+            <h2>Fetch jobs</h2>
+            <p class="hint">Searches the boards for your <strong>profile role</strong> and tailors a resume to every
+            result. Pick how far back to look — wider gives more variety. Narrow what you see anytime in
+            <strong>Job Listings</strong>.</p>
+            <div class="scrape-toolbar">
+              <div class="toolbar-field readonly">
+                <span class="tf-label">Profile role</span>
+                <strong id="scrape-role-label">your profile role</strong>
+                <button type="button" class="link-btn" id="btn-edit-profile-settings">Edit in profile</button>
               </div>
-              <label>
-                Job titles / Indeed search
-                <input id="input-search" name="search_term" required placeholder="Python developer FastAPI" />
-                <span class="field-note">Short query works best — not a long list of titles.</span>
+              <label class="toolbar-field">
+                <span class="tf-label">Posted within</span>
+                <select id="filter-hours" aria-label="Posted within">
+                  <option value="24">Last 24 hours</option>
+                  <option value="48">Last 48 hours</option>
+                  <option value="72">Last 3 days</option>
+                  <option value="168" selected>Last 7 days</option>
+                  <option value="336">Last 14 days</option>
+                  <option value="720">Last 30 days</option>
+                </select>
               </label>
+              <button id="btn-scrape" class="btn primary fetch-btn" type="button" title="Fetch from Indeed + free APIs">
+                <span class="fetch-btn-ico" aria-hidden="true">⟳</span>
+                <span class="fetch-btn-label">Fetch jobs</span>
+              </button>
+            </div>
+
+            <div id="fetch-progress" class="fetch-progress hidden" aria-live="polite">
+              <div class="fetch-progress-track"><div id="fetch-progress-fill" class="fetch-progress-fill"></div></div>
+              <ol class="fetch-steps">
+                <li data-step="scrape"><span class="step-dot"></span><span>Searching job boards</span></li>
+                <li data-step="compose"><span class="step-dot"></span><span>Tailoring resumes</span></li>
+                <li data-step="pack"><span class="step-dot"></span><span>Preparing your list</span></li>
+              </ol>
+            </div>
+
+            <div id="fetch-summary" class="fetch-summary"></div>
+            <p class="fetch-hint hint">Fetching can be costly — fetch once, then refine freely in
+            <strong>Job Listings</strong> without re-scraping.</p>
+          </article>
+
+          <article class="panel-card storage-panel">
+            <h2>Local data</h2>
+            <p class="hint">ResuMatch keeps everything on your computer. Each <strong>Fetch jobs</strong> run
+            <em>replaces</em> the previous job cache and rebuilds tailored resumes for the new results.
+            Your application statuses (Saved, Applied, etc.) stay in the browser until you clear site data.</p>
+            <dl class="storage-dl">
+              <dt>Job cache</dt>
+              <dd><code>~/.anna/resumatch/jobs_cache.json</code></dd>
+              <dt>Latest fetch</dt>
+              <dd><code>~/.anna/resumatch/jobs_latest.json</code></dd>
+              <dt>Your listings</dt>
+              <dd><code>~/.anna/resumatch/application_packs.json</code></dd>
+              <dt>Tailored resumes</dt>
+              <dd><code>~/.anna/resumatch/resumes/</code></dd>
+              <dt>Compiled PDFs</dt>
+              <dd><code>~/.anna/resumatch/pdfs/</code> and <code>~/Downloads/</code></dd>
+              <dt>Profile</dt>
+              <dd><code>~/.anna/resumatch/profile.json</code></dd>
+            </dl>
+            <p class="hint storage-reset">To free disk space after you've applied, quit ResuMatch and delete
+            <code>~/.anna/resumatch/</code> (or just <code>resumes/</code>, <code>pdfs/</code>, and
+            <code>application_packs.json</code>). Then fetch again. Your profile is preserved unless you delete
+            <code>profile.json</code>.</p>
+          </article>
+
+          <article class="panel-card boost-panel">
+            <h2>Boost scrape (LinkedIn)</h2>
+            <p class="hint">Boost adds LinkedIn via JobSpy. Proxies required — one per line or comma-separated.</p>
+            <form id="boost-form">
               <label>
-                Target skills in job posts
-                <input id="input-target-skills" name="target_skills" placeholder="python, fastapi, docker, aws, llm" />
+                Proxy list
+                <textarea id="input-proxies" name="proxies" rows="4" placeholder="user:pass@proxy.example.com:8080"></textarea>
               </label>
-              <div class="form-grid three">
-                <label>Domain
-                  <select id="input-domain" name="domain">
-                    <option value="software_engineering">Software engineering</option>
-                    <option value="data_science">Data science</option>
-                    <option value="machine_learning">Machine learning</option>
-                    <option value="devops">DevOps</option>
-                    <option value="other">Other</option>
-                  </select>
-                </label>
-                <label>Seniority
-                  <select id="input-seniority" name="seniority">
-                    <option value="intern">Intern</option>
-                    <option value="junior">Junior</option>
-                    <option value="mid" selected>Mid</option>
-                    <option value="senior">Senior</option>
-                  </select>
-                </label>
-                <label>Years<input id="input-years" name="years" type="number" min="0" value="2" /></label>
-              </div>
-              <label>Overleaf resume (.tex)<textarea id="input-latex" name="latex" rows="10" required></textarea></label>
-              <button type="submit" class="btn primary wide">Save profile</button>
+              <button type="submit" id="btn-boost" class="btn primary">Run boost scrape</button>
             </form>
-            <p id="onboard-error" class="error hidden"></p>
+            <p id="boost-error" class="error hidden"></p>
           </article>
         </section>
       </main>
+    </div>
+
+    <!-- Profile editor modal -->
+    <div id="profile-modal" class="modal hidden" role="dialog" aria-labelledby="profile-modal-title">
+      <div class="modal-backdrop" id="profile-modal-backdrop"></div>
+      <div class="modal-panel">
+        <header class="modal-head">
+          <div>
+            <h2 id="profile-modal-title">Your profile</h2>
+            <p class="hint">Required before fetching jobs. Pick a role — we pre-fill search &amp; skills.</p>
+          </div>
+          <button type="button" class="btn ghost small" id="btn-close-profile" aria-label="Close">✕</button>
+        </header>
+        <form id="profile-form" class="profile-form">
+          <input type="hidden" name="role_id" id="input-role-id" />
+          <div class="form-grid">
+            <label>Your name<input id="input-name" name="name" required placeholder="Satvik Tejas" /></label>
+            <label>Location<input id="input-location" name="location" value="India" required /></label>
+          </div>
+          <label>
+            Target role
+            <select id="input-role" name="role_select" required>
+              <option value="">— Select a role —</option>
+            </select>
+            <span class="field-note">SDE, AI Engineer, Python Developer, MLE, etc.</span>
+          </label>
+          <label>
+            Domain
+            <select id="input-domain" name="domain" required></select>
+          </label>
+          <label>
+            Indeed search query
+            <input id="input-search" name="search_term" required placeholder="Python developer" />
+            <span class="field-note">Short query — auto-filled from role, you can edit.</span>
+          </label>
+          <label>
+            Target skills (comma-separated)
+            <input id="input-target-skills" name="target_skills" required placeholder="python, fastapi, docker, aws" />
+          </label>
+          <div class="form-grid">
+            <label>Your seniority
+              <select id="input-seniority" name="seniority" required>
+                <option value="intern">Intern</option>
+                <option value="junior">Junior</option>
+                <option value="mid" selected>Mid</option>
+                <option value="senior">Senior</option>
+                <option value="lead">Lead</option>
+              </select>
+              <span class="field-note">Your experience level (not the job filter).</span>
+            </label>
+            <label>Years experience<input id="input-years" name="years" type="number" min="0" value="2" required /></label>
+          </div>
+          <label>Overleaf resume (.tex)<textarea id="input-latex" name="latex" rows="12" required placeholder="Paste full \documentclass{resume} ... \end{document}"></textarea></label>
+          <div class="modal-actions">
+            <button type="submit" class="btn primary">Save profile</button>
+            <button type="button" class="btn ghost" id="btn-cancel-profile">Cancel</button>
+          </div>
+        </form>
+        <p id="profile-form-error" class="error hidden"></p>
+      </div>
+    </div>
+
+    <!-- PDF preview modal (PDF.js canvas) -->
+    <div id="pdf-modal" class="modal hidden" role="dialog" aria-labelledby="pdf-modal-title">
+      <div class="modal-backdrop" id="pdf-modal-backdrop"></div>
+      <div class="modal-panel pdf-panel">
+        <header class="modal-head">
+          <div>
+            <h2 id="pdf-modal-title">Resume preview</h2>
+            <p class="hint" id="pdf-saved-note">Compiling…</p>
+          </div>
+          <div class="pdf-head-actions">
+            <button type="button" class="btn ghost small" id="btn-print-pdf">Print / Save as PDF</button>
+            <button type="button" class="btn ghost small" id="btn-close-pdf" aria-label="Close">✕</button>
+          </div>
+        </header>
+        <div id="pdf-canvas-scroll" class="pdf-canvas-scroll">
+          <div id="pdf-pages" class="pdf-pages"></div>
+        </div>
+        <p id="pdf-modal-error" class="error hidden"></p>
+      </div>
     </div>
 
     <div id="boot-screen" class="boot-screen">

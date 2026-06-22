@@ -1,8 +1,8 @@
 {
   "name": "ResuMatch",
   "slug": "resumatch",
-  "tagline": "Scrape jobs, match your resume, apply manually",
-  "description": "Job-search dashboard: save your Overleaf resume, refresh to scrape and score jobs, open apply links, track what you applied to.",
+  "tagline": "Fetch jobs once, tailor your resume, apply yourself",
+  "description": "Anna App for manual job search: save your Overleaf resume and target role, fetch jobs from free APIs and Indeed, get a tailored resume per listing, preview PDFs, and track applications — you click Submit on the real job site.",
   "category": "productivity",
   "pricing_model": "free"
 }

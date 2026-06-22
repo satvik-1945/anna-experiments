@@ -1,17 +1,18 @@
 ---
 name: resumatch-pipeline
-description: End-to-end ResuMatch flow — profile, scrape, match jobs for manual apply.
+description: End-to-end ResuMatch flow — profile, scrape, tailor resumes for manual apply.
 ---
 
 # ResuMatch Pipeline
 
-Run in order when user asks to find matching jobs:
+Run in order when user asks to find jobs:
 
-1. **user_profile** `action: save` — ask for **Overleaf LaTeX paste** (`resume_latex`), not plain text. Also: domain, seniority, years, location.
-2. **job_scraper** `action: scrape`, `use_profile: true`, `persist: true`
-3. **job_matcher** `action: score`, `threshold: 80`
-4. **resume_composer** `action: compose_all`
-5. **application_pack** `action: prepare_all` → job link + tailored .tex path
-6. User opens apply_url, compiles .tex in Overleaf, applies manually
+1. **user_profile** `action: save` — Overleaf LaTeX (`resume_latex`), search_term, skills, location
+2. **job_scraper** `action: scrape`, `use_profile: true`, `include_free_apis: true`, `persist: true`
+3. **resume_composer** `action: compose_all`
+4. **application_pack** `action: prepare_all` → job link + tailored .tex path
+5. User opens apply_url, downloads PDF or compiles .tex, applies manually
 
-No email draft. Free-tier scrape only (Indeed etc.) — apply_url from job boards.
+Optional: **job_scraper** `mode: boost` with `proxies` for LinkedIn.
+
+No email draft. Manual apply only.

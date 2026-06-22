@@ -34,6 +34,18 @@ MANIFEST = {
                     "description": "Passed job index (for prepare)",
                     "required": False,
                 },
+                {
+                    "name": "offset",
+                    "type": "integer",
+                    "description": "Pagination offset for list (default 0)",
+                    "required": False,
+                },
+                {
+                    "name": "limit",
+                    "type": "integer",
+                    "description": "Page size for list (default 50, max 200)",
+                    "required": False,
+                },
             ],
         }
     ],
@@ -47,7 +59,8 @@ def invoke(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     action = str(args.get("action", "")).strip().lower()
 
     if action == "prepare_all":
-        return {"success": True, "data": prepare_all()}
+        max_packs = int(args.get("max_response_packs", 5))
+        return {"success": True, "data": prepare_all(max_response_packs=max_packs)}
 
     if action == "prepare":
         index = args.get("job_index")
@@ -56,7 +69,9 @@ def invoke(tool: str, args: dict[str, Any]) -> dict[str, Any]:
         return {"success": True, "data": prepare_one(int(index))}
 
     if action == "list":
-        return {"success": True, "data": list_packs()}
+        offset = int(args.get("offset", 0))
+        limit = int(args.get("limit", 50))
+        return {"success": True, "data": list_packs(offset=offset, limit=limit)}
 
     raise ValueError(f"unknown action: {action}")
 

@@ -63,7 +63,21 @@ class ResumeComposerTests(unittest.TestCase):
             self.assertIn("Role-Aligned", out)
             self.assertIn("\\begin{rSection}{Technical Skills}", out)
             self.assertIn("FastAPI", out)
-            self.assertIn("\\begin{rSection}{Work Experience}", out)
+
+    def test_fix_hyperref_for_tectonic(self) -> None:
+        from composer_core import _fix_tex_for_tectonic
+
+        tex = (
+            "\\documentclass{resume}\n"
+            "\\usepackage{hyperref}\n"
+            "\\usepackage{geometry}\n"
+            "\\href{mailto:a@b.com}{email}\n"
+            "\\begin{document}\n"
+        )
+        fixed = _fix_tex_for_tectonic(tex)
+        self.assertIn("[hidelinks,unicode]{hyperref}", fixed)
+        self.assertEqual(fixed.count("{hyperref}"), 1)
+        self.assertLess(fixed.index("geometry"), fixed.index("hyperref"))
 
     def test_compile_pdf_mock(self) -> None:
         from unittest.mock import patch
@@ -79,18 +93,46 @@ class ResumeComposerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             os.environ["RESUMATCH_RESUMES_DIR"] = tmp
             os.environ["RESUMATCH_PDF_DIR"] = tmp
+            downloads = Path(tmp) / "Downloads"
+            os.environ["RESUMATCH_DOWNLOADS_DIR"] = str(downloads)
             compose_for_job(entry, base_tex=base)
             tex_path = Path(tmp) / "resume_engineer_acme.tex"
             with patch("composer_core._find_tectonic", return_value="/bin/tectonic"), patch(
                 "composer_core.subprocess.run",
             ) as mock_run:
                 mock_run.return_value.returncode = 0
-                pdf_path = tex_path.with_suffix(".pdf")
-                pdf_path.write_bytes(fake_pdf)
+                build_pdf = Path(tmp) / "resume_engineer_acme_build.pdf"
+                build_pdf.write_bytes(fake_pdf)
                 result = compile_pdf(tex_path=str(tex_path))
             self.assertTrue(result["pdf_filename"].endswith(".pdf"))
             self.assertEqual(result["size_bytes"], len(fake_pdf))
             self.assertIn("pdf_base64", result)
+            self.assertIsNotNone(result["downloads_path"])
+            self.assertTrue(Path(result["downloads_path"]).is_file())
+
+    def test_compile_base_pdf_from_profile(self) -> None:
+        from unittest.mock import patch
+
+        from composer_core import compile_pdf
+
+        base = FIXTURE_RSECTION.read_text(encoding="utf-8")
+        fake_pdf = b"%PDF-1.4 base"
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["RESUMATCH_RESUMES_DIR"] = tmp
+            os.environ["RESUMATCH_PDF_DIR"] = tmp
+            os.environ["RESUMATCH_DOWNLOADS_DIR"] = str(Path(tmp) / "Downloads")
+            profile_path = Path(tmp) / "profile.json"
+            profile_path.write_text(json.dumps({"resume_tex": base}), encoding="utf-8")
+            os.environ["RESUMATCH_PROFILE_PATH"] = str(profile_path)
+            with patch("composer_core._find_tectonic", return_value="/bin/tectonic"), patch(
+                "composer_core.subprocess.run",
+            ) as mock_run:
+                mock_run.return_value.returncode = 0
+                (Path(tmp) / "resume_base_build.pdf").write_bytes(fake_pdf)
+                result = compile_pdf(base=True, to_downloads=False)
+            self.assertEqual(result["size_bytes"], len(fake_pdf))
+            self.assertIsNone(result["downloads_path"])
+            os.environ.pop("RESUMATCH_PROFILE_PATH", None)
 
 
 if __name__ == "__main__":

@@ -74,6 +74,29 @@ class JobScraperPluginTests(unittest.TestCase):
         self.assertEqual(data["count"], 1)
         self.assertEqual(data["jobs"][0]["title"], "Mock Software Engineer")
         self.assertTrue(data["jobs"][0]["description"].endswith("…"))
+        self.assertNotIn("jobs_all", data)
+
+    @patch.dict(os.environ, {"RESUMATCH_SMOKE_MOCK": "1"}, clear=False)
+    def test_scrape_response_stays_small(self) -> None:
+        out = _run_plugin(
+            {
+                "jsonrpc": "2.0",
+                "method": "invoke",
+                "id": 4,
+                "params": {
+                    "tool": "job_scraper",
+                    "arguments": {
+                        "action": "scrape",
+                        "mode": "free",
+                        "persist": False,
+                        "max_response_jobs": 5,
+                    },
+                },
+            }
+        )
+        raw = json.dumps(out)
+        self.assertLess(len(raw), 50_000, "RPC payload must not include full job cache")
+        self.assertNotIn("jobs_all", out["result"]["data"])
 
 
 if __name__ == "__main__":
