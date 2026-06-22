@@ -1,7 +1,7 @@
 {
   "slug": "resumatch-profile",
   "name": "ResuMatch Profile",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "executa_type": "tool",
   "tool_id": "tool-tejasstvk8-resumatch-profile-ae86dv2d",
   "type": "python",
@@ -17,6 +17,7 @@
       },
       "binary": {
         "type": "binary",
+        "package_name": "tool-tejasstvk8-resumatch-profile-ae86dv2d",
         "executable_name": "tool-tejasstvk8-resumatch-profile-ae86dv2d",
         "supports_protocol": true,
         "binary_urls": {

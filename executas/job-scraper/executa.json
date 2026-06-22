@@ -1,7 +1,7 @@
 {
   "slug": "job-scraper",
   "name": "Job Scraper",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "executa_type": "tool",
   "tool_id": "tool-tejasstvk8-job-scraper-7yj4tbf2",
   "type": "python",
@@ -17,6 +17,7 @@
       },
       "binary": {
         "type": "binary",
+        "package_name": "tool-tejasstvk8-job-scraper-7yj4tbf2",
         "executable_name": "tool-tejasstvk8-job-scraper-7yj4tbf2",
         "supports_protocol": true,
         "binary_urls": {

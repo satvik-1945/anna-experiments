@@ -1,7 +1,7 @@
 {
   "slug": "resume-composer",
   "name": "Resume Composer",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "executa_type": "tool",
   "tool_id": "tool-tejasstvk8-resume-composer-yf9kf9ja",
   "type": "python",
@@ -16,6 +16,7 @@
       },
       "binary": {
         "type": "binary",
+        "package_name": "tool-tejasstvk8-resume-composer-yf9kf9ja",
         "executable_name": "tool-tejasstvk8-resume-composer-yf9kf9ja",
         "supports_protocol": true,
         "binary_urls": {

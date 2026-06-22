@@ -12,7 +12,7 @@
 
 **Say:**
 
-> "Job hunting is repetitive — you scrape the same boards, rewrite the same resume, and lose track of what you applied to. ResuMatch is an Anna App that does the boring work locally: fetch jobs once, tailor your resume per role, and track your pipeline — you still click Apply."
+> "Job hunting is repetitive — you scrape the same boards, rewrite the same resume, and lose track of what you applied to. ResuMatch is an Anna App that does the boring work locally: fetch jobs once, tailor your resume per role, and track your pipeline."
 
 ---
 
